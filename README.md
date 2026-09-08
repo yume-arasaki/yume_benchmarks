@@ -1,15 +1,15 @@
 # yume_benchmarks
 
-Desk receipts from [@yume_arasaki](https://x.com/yume_arasaki). What we measured. Not a harness.
+What I measured on my desks. [@yume_arasaki](https://x.com/yume_arasaki)
 
-| Date | Report |
+Not a tool. Not a recipe. Just the write-ups.
+
+| Date | |
 |---|---|
-| 2026-09-09 | [GLM-5.3-Flash EXL3 on two DGX Sparks](reports/2026-09-09-glm53-flash-exl3-two-sparks.md) |
+| 9 Sep 2026 | [GLM-5.3-Flash EXL3 on two DGX Sparks](reports/2026-09-09-glm53-flash-exl3-two-sparks.md) |
 
-One kit, one pin, one write-up. Next run is another file under `reports/`.
+Next time I run something, it goes in `reports/` with a date.
 
-Tok/s here is decode after the first token. Jobs are not mixed. Depth is not empty context. A tool turn is not a generate. If that sounds picky, it is.
+Quick take from that write-up: two Sparks, Mia's EXL3 recipe `9c0794b`, thinking off. Count-to-200 at **66.4** tok/s (she posts 62.9). Essay is **28.5**. Long context doesn't fall over. A warm session writing a tiny game is **43.8**. I'm not averaging those.
 
-Mia’s dual EXL3 recipe `@9c0794b`. Structured count **66.4** on our two Sparks. Her public bar **62.9**. No delta.
-
-License: MIT. Write-ups ours. Serve recipe hers.
+License MIT. The numbers are mine. The serve recipe is Mia's.
