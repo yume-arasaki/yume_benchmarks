@@ -18,15 +18,17 @@ Power is both GPUs added together, from `nvidia-smi`, while that request was in 
 
 ## Empty context
 
-Two runs on the count job at 1, 2, and 4 streams. I took the better of the two. Everything else is single stream. I didn't bother sweeping concurrency on the essay. It's slower and I already knew that.
+Two runs at each concurrency. Headline is the better of the two. Count, essay, clamps, and JSON all got 1 / 2 / 4 streams. Maths is a 32-token toy. I didn't bother.
 
 | What I asked | 1 stream | 2 streams | 4 streams |
 |---|---:|---:|---:|
 | Count from 1 to 200 | **66.4** | **133.4** | **187.6** |
-| Explain a hash map | **28.5** | | |
-| Fifty identical Python clamps | **61.3** | | |
-| A JSON blob of fake GPU stats | **44.7** | | |
-| `2^10 + 3^5`, integer only | **29.9** | | |
+| Explain a hash map | **28.5** | **57.3** | **66.4** |
+| Fifty identical Python clamps | **61.3** | **120.7** | **177.3** |
+| A JSON blob of fake GPU stats | **44.7** | **86.9** | **109.8** |
+| `2^10 + 3^5`, integer only | **29.9** | | | |
+
+Essay at 4 streams barely beats 2. The clamps still scale. JSON quit early (a hundred tokens, not the 400 I asked for) so that C2/C4 is a short job, not a fair length match to the others.
 
 The arithmetic answer is 1267. It didn't print 1267. Speed is still 29.9. Both are true.
 
@@ -94,7 +96,7 @@ I am not putting 43.8 next to that second turn and calling it a comparison. One 
 
 ## What I didn't run
 
-I didn't sweep 2 and 4 streams on the essay. I didn't put maths or JSON at 32k. I didn't time the real GUIs, or thinking-on, or wall power. This kit doesn't give me a clean wall-joule number the way it gives GPU draw.
+I didn't put maths or JSON at 32k. I didn't time the real GUIs, or thinking-on, or wall power. This kit doesn't give me a clean wall-joule number the way it gives GPU draw. JSON at 2 and 4 streams stopped after a short object. That's on the job, not a hidden 400-token generate.
 
 ---
 
