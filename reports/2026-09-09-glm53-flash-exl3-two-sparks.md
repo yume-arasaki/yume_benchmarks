@@ -1,115 +1,125 @@
 # GLM-5.3-Flash EXL3 on two DGX Sparks
 
-Field report. 2026-09-09. [@yume_arasaki](https://x.com/yume_arasaki)
+2026-09-09 · [@yume_arasaki](https://x.com/yume_arasaki)
 
-We ran [MiaAI-Lab's dual-Spark EXL3 recipe](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks) (`9c0794b`) on two GB10 boxes, tensor parallel 2. Weights: `Mia-AiLab/GLM-5.3-Flash-EXL3-TR3-4bpw`. Drafter on. Thinking off. Throughput below is **decode after the first token**, not tokens divided by the whole wait including prefill.
+[MiaAI-Lab dual-Spark EXL3](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks) `9c0794b` on two GB10 boxes, TP=2. Weights `Mia-AiLab/GLM-5.3-Flash-EXL3-TR3-4bpw`. Drafter on (k=7). Thinking off. Pin taken at the start of the run.
 
-Her README structured bar on this recipe family is **62.9** tok/s. Ours is **66.4**. Same job class (count 1 to 200). Different pin and different desk. We are not printing a percent delta.
+Her public structured bar on this family is **62.9** tok/s. Ours is **66.4**. Same job class. Different pin, different desk. No delta.
+
+These are **selected cells**, not a blended score, not the full matrix.
 
 ---
 
-## Short context
+## How to read this
+
+Tok/s is completion tokens over time **after the first content token**. Wall (including prefill) is a different clock. We do not mix them.
+
+A count job is not an essay. An essay is not a tool call. A retrieve hit is not a speed curve. A 55-token search turn is not a 2048-token generate. If two rows would need a footnote to sit in the same table, they do not sit in the same table.
+
+Prompt length is whatever the server counted. We aimed at round depths. The pack runs long on this tokenizer. The column is the counted size.
+
+Power is GPU draw on **both** cards, added. Not wall. Not RAPL. Not the price of the Sparks. Joules ride the same request as the tokens.
+
+We freeze the job. If the timing changes, it is a new row.
+
+---
+
+## Kit
 
 | | |
 |---|---|
 | Hardware | 2× DGX Spark (GB10), TP=2 |
 | Model | GLM-5.3-Flash EXL3, 4bpw |
 | Thinking | off |
-| Speculative decode | on (k=7) |
-| What “tok/s” means here | completion tokens / time after first content token |
-
-Power numbers are **GPU draw on both cards, added together**. Not wall power. Not the price of the Sparks.
+| Speculative decode | on, k=7 |
 
 ---
 
 ## Empty context
 
-Two repeats at each concurrency for structured. Peak of the two is the headline.
+Structured: two repeats per concurrency. Headline is the peak. Other jobs: C1 only. That is a choice.
 
-| Job | C1 | C2 | C4 |
+| Job | 1 stream | 2 streams | 4 streams |
 |---|---:|---:|---:|
 | Count 1→200 | **66.4** | **133.4** | **187.6** |
-| Hash-map essay | **28.5** | — | — |
-| Repetitive Python (`clamp_00`…`clamp_49`) | **61.3** | — | — |
-| JSON object | **44.7** | — | — |
-| Short arithmetic | **29.9** | — | — |
+| Hash-map essay | **28.5** | | |
+| Repetitive Python | **61.3** | | |
+| JSON object | **44.7** | | |
+| Short arithmetic | **29.9** | | |
 
-Arithmetic asked for `2^10 + 3^5` as a bare integer (**1267**). Decode is 29.9. The integer itself did not match. We still report the speed.
+Arithmetic wanted a bare integer (`2¹⁰ + 3⁵` = 1267). Speed 29.9. The integer did not match. Both facts stay.
 
-Tool call (weather, structured `tool_calls`, no XML dumped into the text): **pass**.
+Structured tool call (no XML leaked into the text): **pass**.
 
-Count-1→200 C1 energy on the GPU rails: **417 J** for 400 tokens (~1.0 J/tok). At US residential 18.34¢/kWh, that C1 rate is about **$0.31/day** of GPU electricity if you could hold it. Same token rate on Grok 4.6 output pricing ($6/M) is about **$34/day**. Same-model API list price for GLM-5.3-Flash ($0.50/M out) is about **$2.87/day**. The boxes are not free. The column is electricity, not capex.
+Count C1, GPU rails: **417 J** / 400 tokens. US residential 18.34¢/kWh (EIA, June 2026). If you could hold that C1 rate: about **$0.31/day** local electricity vs about **$34/day** Grok 4.6 output ($6/M) vs about **$2.87/day** GLM-5.3-Flash list ($0.50/M out). Electricity, not capex. A second, lower duty exists. It is not this column.
 
 ---
 
-## Long context
+## Depth
 
-Packed filler, then the task. Prompt size is what the server counted, not the size we aimed at (the pack runs long on this tokenizer).
+Packed filler, then the task. Three clocks. They are not substitutes.
 
-### Did it find the needles?
+### Retrieve
 
-Three unique codes planted at 5%, 50%, 95%. One pass per depth.
+Three unique codes at 5 / 50 / 95. One pass per depth. Not five repeats of 32k.
 
-| Aimed | Server prompt tokens | Found | Prefill tok/s | Time to first token |
+| Aimed | Counted tokens | Hits | Prefill tok/s | Time to first token |
 |---:|---:|---|---:|---:|
-| ~8k | 17 968 | 3/3 | 1 483 | 12 s |
-| ~32k | 69 454 | 3/3 | 1 615 | 43 s |
-| ~128k | 279 170 | 3/3 | 1 549 | 180 s |
-| ~256k | 557 116 | 3/3 | 1 458 | 382 s |
+| 8k | 17 968 | 3/3 | 1 483 | 12 s |
+| 32k | 69 454 | 3/3 | 1 615 | 43 s |
+| 128k | 279 170 | 3/3 | 1 549 | 180 s |
+| 256k | 557 116 | 3/3 | 1 458 | 382 s |
 
-**12/12.** That is retrieve, not a speed curve.
+**12/12.** Retrieve only.
 
-### Decode after fill (256 tokens)
+### Decode after fill
 
-This is the speed-vs-depth line. Not the empty-context 66.4.
+256 tokens, forced length. This is the speed-vs-depth line. Not the empty-context 66.4.
 
-| Aimed | Server prompt tokens | Decode tok/s |
+| Aimed | Counted tokens | Decode tok/s |
 |---:|---:|---:|
-| ~8k | 17 208 | **21.6** |
-| ~32k | 67 967 | **21.8** |
-| ~128k | 284 962 | **24.3** |
-| ~256k | 557 086 | **24.7** |
+| 8k | 17 208 | **21.6** |
+| 32k | 67 967 | **21.8** |
+| 128k | 284 962 | **24.3** |
+| 256k | 557 086 | **24.7** |
 
-No fall-off on this box. Slightly up.
+No fall-off. Slightly up.
 
-### Same jobs with the cache already full
+### Job with the cache already warm
 
-| Job | ~32k | ~128k | Empty C1 (from above) |
+| Job | ~32k | ~128k | Empty (from above) |
 |---|---:|---:|---:|
 | Count 1→200 | **65.7** | **65.3** | 66.4 |
 | Hash-map essay | **28.2** | **30.2** | 28.5 |
 | Repetitive Python | **61.6** | **63.6** | 61.3 |
-| Tool call | called (12 tok) | called (12 tok) | pass |
+| Tool call | called | called | pass |
 
-The long jobs hold. The tool rows are a handful of tokens. Do not read 0.3 tok/s as “tools are slow.”
+The long jobs hold. Tool rows are a handful of tokens. That is not a speed.
 
 ---
 
-## Agent-shaped turns (~35k already in the prompt)
+## Warm session, agent-shaped
 
-Not the OMP app. Not Hermes the product. One HTTP turn, tools attached, thinking off, session already warm.
+One HTTP turn. Tools on. Thinking off. About 35k already in the prompt. Not the GUI.
 
-| Turn | Prompt tokens | What happened | Decode tok/s |
+| Ask | Counted tokens | What it did | Decode tok/s |
 |---|---:|---|---:|
-| “Build a browser tower-stacking game, one HTML file” | 34 080 | Wrote ~2048 tokens, then a file-write tool call | **43.8** |
-| “Research local SRS, then build a flashcard app” | 35 298 | 55 tokens, then two web searches | 22.5 on 55 tok |
+| Build a tower-stacking game, one HTML file | 34 080 | ~2048 tokens, then a write | **43.8** |
+| Research local spaced repetition, then build the app | 35 298 | 55 tokens, then two searches | — |
 
-Those are not the same job. The second turn went to tools first. We are not ranking 22.5 against 43.8.
+The second turn went to tools. We do not rank it against 43.8.
 
 ---
 
-## What this is not
+## Left on the table
 
-- Not a single “the model is X tok/s.”
-- Not a beat on Mia’s 62.9. Different pin, different desk.
-- Not wall power, RAPL, or the cost of the hardware.
-- Not a recipe dump. Serve stack is hers; we credit the repo and the SHA.
-- Not 15/15 needles. One pass per depth is 3/3, four depths 12/12.
+Concurrency sweep only on the count job. Arithmetic at depth, JSON at depth, a dedicated skip-tax cell, thinking-on, and the GUIs: not this write-up.
+
+Wall power: not measured on this kit the way GPU-rail is.
 
 ---
 
 ## Credit
 
-Recipe and image: [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks) `@9c0794b`.  
-Electricity rate: EIA US residential, June 2026, 18.34¢/kWh.  
-Grok 4.6 and Z.AI GLM-5.3-Flash list prices as of 2026-09-09.
+Serve recipe and image: [MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks](https://github.com/MiaAI-Lab/GLM-5.3-Flash-EXL3-2x-DGX-Sparks) `@9c0794b`.  
+Electricity: EIA US residential, June 2026. API list prices as of 2026-09-09.
