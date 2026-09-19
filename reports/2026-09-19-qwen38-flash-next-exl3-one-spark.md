@@ -4,7 +4,9 @@
 
 **Verdict: `grid_test_failed`.**
 
-Ran [Cruz's single-Spark EXL3 recipe](https://github.com/vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe) (`b942e1f`) plus [vllm-exl3](https://github.com/vcruz305/vllm-exl3) (`08ed1bf`) on one GB10 box. Tensor parallel 1. Weights `turboderp/Qwen3.8-Flash-Next-exl3` rev `3.05bpw_h5_ng5`. vLLM 0.29.0. MTP 3. `max_model_len` 262144. Thinking off for the grid. Recipe port 8899 remapped to **8009** on this desk (never 8888).
+Ran [Cruz's single-Spark EXL3 recipe](https://github.com/vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe) (`b942e1f`) on one GB10 box. Tensor parallel 1. Weights `turboderp/Qwen3.8-Flash-Next-exl3` rev `3.05bpw_h5_ng5`. Recipe port 8899 remapped to **8009** on this desk (never 8888).
+
+That recipe is **two engines**, not one. I ran the Yume_Arasaki grid on the vLLM overlay because that is the OpenAI `/v1` the grid and Hamster need. His **custom ExLlamaV3** is the faster engine. I did not grid it. Details below.
 
 Cruz's `b942e1f` serve script ships `--reasoning-parser qwen3` and **no** `--tool-call-parser`. The model speaks Qwen3 XML, not Hermes. We patched that ourselves on the live box: `--enable-auto-tool-choice --tool-call-parser qwen3_xml`. First try was `hermes`. That leaked `<function=get_weather><parameter=city>…</parameter></function>` into `content` and left `tool_calls` empty. After the patch, empty-KV weather is a clean `finish_reason=tool_calls`. The patch is **not** in Cruz HEAD. The EngineCore crash still happens with it on.
 
@@ -25,6 +27,26 @@ I didn't mash anything into one score. Counting, writing, code, JSON, tools, and
 Tok/s below is after the first token shows up. Divide by the whole wait, prompt-reading included, and you get a different, worse number. Kept apart.
 
 Prompt sizes are what the server said it read. Power is **one** GPU, from `nvidia-smi` on spark-1, while that request was in flight. Not the wall plug. Not both boxes. Not what I paid for the Spark.
+
+---
+
+## Cruz's custom ExLlamaV3
+
+[vcruz305/exllamav3](https://github.com/vcruz305/exllamav3) is not stock turboderp. `master` is upstream plus aarch64 build guards ([#1](https://github.com/vcruz305/exllamav3/pull/1)) plus the GB10 decode work ([#2](https://github.com/vcruz305/exllamav3/pull/2), [#3](https://github.com/vcruz305/exllamav3/pull/3)): int8 GatedResidual mixer kernels (the mixers ship fp16 inside a 3-bit pack), pruned draft `lm_head` (64K-column slice), MTP host-sync removal, wide cooperative MoE tile on GB10's 48 SMs, 8-bit KV in the launcher. Native numbers below are his, on [`523ecd3`](https://github.com/vcruz305/exllamav3/commit/523ecd3), `examples/chat.py`, greedy, 400 new tokens, cold load, one stream. Printed, never subtracted from my vLLM grid.
+
+| Prompt class (Cruz, native) | Decode tok/s | Draft acceptance |
+|---|---:|---:|
+| Code (nginx log parser) | **79** | 73% |
+| DevOps explainer + YAML | **62** | 59% |
+| Prose (350-word story) | **53** | 46% |
+| No draft, any prompt | 33 | |
+| Code, 240k tokens of context | **72** (fp16 KV: 65) | 71% |
+
+He also prints stock exllamav3 1.5.0 at k=3 around **56** on code, and the vLLM overlay at **50–53**. Native is the one that hits 79. Needle on that native launcher is **exact at 240k** and fails at 300k. My vLLM grid missed 234k 0/3. Different engines. Do not mash.
+
+**What I actually booted for the grid:** vLLM **0.29.0** + [vllm-exl3](https://github.com/vcruz305/vllm-exl3) `@08ed1bf` + **exllamav3 1.4.7 built from source** with his aarch64 patch (`tools/patch_exllamav3_aarch64.py` on `exllamav3/exllamav3_ext`). The plugin imports compiled `exllamav3_ext`; the pure-Python wheel is not enough. Checkout on spark-1: `~/src/exllamav3`. MTP k=3, `max_model_len` 262144. That is the vLLM path of his recipe, not the `523ecd3` native launcher.
+
+Native has **no measured OpenAI `/v1`**. No reasoning parser, no tool-call parser, no TabbyAPI numbers on this kit. The grid, the voxel 1-shot, and Hamster all need `/v1`. So `grid_test_failed` is a fail of the **vLLM overlay**, sitting on his kernels, not a fail of the 79 tok/s native engine. I did not run nights through `scripts/exl3_native/`.
 
 ---
 
@@ -66,7 +88,7 @@ Three codes, planted at 5%, 50%, and 95%. Once per depth. Unique salt.
 | 110k | 111,700 | 3/3 | 1,066 | 104.8 s |
 | 240k | 234,605 | **0/3** | 1,072 | 218.9 s |
 
-**12/15.** Prefill still ~1,070 tok/s at 234k. Retrieval is not a speed chart. The last rung is a miss, not a maybe.
+**12/15.** Prefill still ~1,070 tok/s at 234k. Retrieval is not a speed chart. The last rung is a miss, not a maybe. Cruz's **native** ExLlamaV3 launcher reports needle exact at 240k. This miss is the vLLM overlay.
 
 ### How fast does it talk after that fill?
 
@@ -179,7 +201,7 @@ Triton kernel JIT compilation during inference: _qsa_sparse_paged_gqa_splitk_ker
 This causes a latency spike; consider extending warmup to cover this shape/config.
 ```
 
-Hardware for the dump: DGX Spark GB10, aarch64, driver 580.159.03, CUDA 13.0, torch 2.13.0+cu130, UMA 121.69 GiB. Load 79.96 GiB, weights+non-torch 83.02 GiB, KV 11.34 GiB.
+Hardware for the dump: DGX Spark GB10, aarch64, driver 580.159.03, CUDA 13.0, torch 2.13.0+cu130, UMA 121.69 GiB. Load 79.96 GiB, weights+non-torch 83.02 GiB, KV 11.34 GiB. Kernels: Cruz **exllamav3 1.4.7** `exllamav3_ext` (aarch64-patched) under vllm-exl3, not the native `523ecd3` chat.py launcher.
 
 ### How to reproduce without Hermes
 
@@ -214,18 +236,19 @@ Likely knobs for Cruz: CUDA-graph + QSA paged kernel + chunked prefill 832 on a 
 
 ## What I didn't run
 
-No thinking-on grid lanes (one 1-shot voxel HTML is not a night). No wall-plug power. No concurrency at depth. No 256k job-at-depth — the frozen pair is 32k / 128k, and 234k already missed the needle. No chart against dual NVFP4 `d2f54b7` or against the old TP=1 NVFP4 `ef1af5f`. Those are other strains.
+No nights on Cruz's **native** ExLlamaV3 (`523ecd3`, `scripts/exl3_native/`, no `/v1`). That is the engine that prints 79 on code and retrieves a needle at 240k. I used the vLLM overlay because Hamster and the grid speak OpenAI. No TabbyAPI wrap of native. No thinking-on grid lanes (one 1-shot voxel HTML is not a night). No wall-plug power. No concurrency at depth. No 256k job-at-depth — the frozen pair is 32k / 128k, and vLLM 234k already missed the needle. No chart against dual NVFP4 `d2f54b7` or against the old TP=1 NVFP4 `ef1af5f`. Those are other strains.
 
-I did not call this a pass because count-to-200 looks like 65.9.
+I did not call this a pass because count-to-200 looks like 65.9. I also did not call Cruz's native engine a fail. I never put the grid on it.
 
 ---
 
 ## Credit
 
 Recipe: [vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe](https://github.com/vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe) `@b942e1f`.  
-Plugin: [vcruz305/vllm-exl3](https://github.com/vcruz305/vllm-exl3) `@08ed1bf`.  
+Custom ExLlamaV3: [vcruz305/exllamav3](https://github.com/vcruz305/exllamav3) `@523ecd3` (aarch64 guards + GB10 decode: int8 GatedResidual, pruned draft `lm_head`, MTP host-sync removal). Native code **79** tok/s is his, not mine. Grid did not run on this path.  
+vLLM overlay: [vcruz305/vllm-exl3](https://github.com/vcruz305/vllm-exl3) `@08ed1bf` + **exllamav3 1.4.7 from source** with `tools/patch_exllamav3_aarch64.py`. That is what `:8009` served.  
 Quant: [turboderp/Qwen3.8-Flash-Next-exl3](https://huggingface.co/turboderp/Qwen3.8-Flash-Next-exl3) rev `3.05bpw_h5_ng5`.  
-Desk patch (ours, not in Cruz HEAD): `--enable-auto-tool-choice --tool-call-parser qwen3_xml`. Cruz ships no tool parser; `hermes` dumps Qwen3 XML into `content`.  
+Desk patch (ours, not in Cruz HEAD): `--enable-auto-tool-choice --tool-call-parser qwen3_xml`. Cruz `b942e1f` serve script ships no tool parser; `hermes` dumps Qwen3 XML into `content`. (His older GGUF-vs-EXL3 sixcat row already required `qwen3_xml`.)  
 Strain: `qwen38-fn-exl3/vllm-tp1/vcruz/b942e1f`. Isolates: `2026-09-19_8009_*.json`.  
 Power rate: EIA, US residential. API prices from 19 Sep 2026 (Grok 4.6 first-party list, $6.00/M out).  
 Not comparable: [Qwen3.8-Flash-Next NVFP4 on two DGX Sparks](2026-09-18-qwen38-flash-next-nvfp4-two-sparks.md) `@d2f54b7`.
