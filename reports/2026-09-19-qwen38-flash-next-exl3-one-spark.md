@@ -6,6 +6,8 @@
 
 Ran [Cruz's single-Spark EXL3 recipe](https://github.com/vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe) (`b942e1f`) plus [vllm-exl3](https://github.com/vcruz305/vllm-exl3) (`08ed1bf`) on one GB10 box. Tensor parallel 1. Weights `turboderp/Qwen3.8-Flash-Next-exl3` rev `3.05bpw_h5_ng5`. vLLM 0.29.0. MTP 3. `max_model_len` 262144. Thinking off for the grid. Recipe port 8899 remapped to **8009** on this desk (never 8888).
 
+Cruz's `b942e1f` serve script ships `--reasoning-parser qwen3` and **no** `--tool-call-parser`. The model speaks Qwen3 XML, not Hermes. We patched that ourselves on the live box: `--enable-auto-tool-choice --tool-call-parser qwen3_xml`. First try was `hermes`. That leaked `<function=get_weather><parameter=city>…</parameter></function>` into `content` and left `tool_calls` empty. After the patch, empty-KV weather is a clean `finish_reason=tool_calls`. The patch is **not** in Cruz HEAD. The EngineCore crash still happens with it on.
+
 This is not the [dual NVFP4 write-up](2026-09-18-qwen38-flash-next-nvfp4-two-sparks.md) (`d2f54b7`). Different checkpoint, different engine, different topology, different SHA. `compare_ok` against that isolate is **not comparable**. Printed, never subtracted.
 
 The empty-KV speed cells mostly ran. The grid still fails the thing I actually use these boxes for.
@@ -14,7 +16,7 @@ What failed, on this SHA, this pack, this serve:
 
 - Needle **12/15**. The 240k plant is 0/3.
 - Decode after fill is flat to ~110k, then **20.9** tok/s at 239k. That is the MTP cliff, not a slow day.
-- Tools with the KV already full (32k and 128k) did **not** emit a tool call. Empty-KV weather later did, after `--tool-call-parser qwen3_xml`.
+- Tools with the KV already full (32k and 128k) did **not** emit a tool call. Those cells ran **before** we patched the parser. Empty-KV weather later passed, on **our** `qwen3_xml` patch, not on Cruz as shipped.
 - Empty-KV **stream** can 200 with zero first token. Night-1 had to go non-stream to get numbers at all.
 - A real Hermes tool loop (50–60k boot + tools, `stream=true`, `max_tokens=65536`) killed EngineCore **twice** on a fresh boot. Same `10240×336` cuBLAS `mm`. Process gone.
 
@@ -42,7 +44,7 @@ Four is the recipe cap (`MAX_NUM_SEQS=4`). 202.1 is four streams summed on count
 
 The arithmetic answer is 1267. It said 1283. Speed is 11.7. Both are true. Same wrong 1283 the dual NVFP4 cell printed. At this point it's my probe, not the models. It stays in the table.
 
-Asked it to call a weather tool the proper way, not dump XML in the reply. **Empty KV, after `qwen3_xml`:** it did. Zero XML in content. `finish_reason=tool_calls`. That cell is not the crash, and it is not the tools-at-depth cell.
+Asked it to call a weather tool the proper way, not dump XML in the reply. On Cruz as shipped (`hermes`, or no parser): it dumps Qwen3 XML into `content`. **Empty KV, after our `qwen3_xml` patch:** it did. Zero XML in content. `finish_reason=tool_calls`, `get_weather({"city":"Tokyo"})`. That cell is not the crash, and it is not the tools-at-depth cell.
 
 Count job, one stream: **325 joules** for 400 tokens on the one GPU rail, 0.81 J/tok. At US residential power (18.34¢/kWh, EIA) that's about **24 cents a day** if you could sit on that rate. Same firehose on Grok 4.6 output pricing ($6.00/M, frontier ref) is about **$34.17/day**. That's electricity. The box still costs a car. This is not an agent day.
 
@@ -97,15 +99,25 @@ Count / essay / code barely moved. Tools at depth returned 27 tokens, `finish_re
 
 ## The tool lane, where agents live
 
-| Depth | Tool call |
-|---|---|
-| empty KV, `qwen3_xml` | clean, no XML |
-| 32k resident | **fail** — no tool call |
-| 128k resident | **fail** — no tool call |
+This is the desk patch. Cruz did not ship it.
 
-`--tool-call-parser hermes` dumps Qwen3 XML into `content` and leaves `tool_calls` empty. The empty-KV isolate was re-run with `qwen3_xml` and passed. The depth cells were already on disk from the night-2 pass. I did not pretend they passed.
+His `scripts/serve_one_spark_qwen.sh` `@b942e1f` has `--reasoning-parser qwen3` and stops there. We added `--enable-auto-tool-choice` so OpenAI `/v1` would accept a tools array (without it, tools POSTs 400). First parser we wired was `hermes`. Wrong dialect. The model emits:
 
-This is the number I care about for agent work. On this SHA it is the failure.
+```text
+<function=get_weather><parameter=city>Tokyo</parameter></function>
+```
+
+into `content`. `tool_calls` stays empty. vLLM 0.29 already registers `qwen3_xml` and `qwen3_coder`. We patched the live spark-1 serve (and the Hamster wrapper) from `hermes` to `qwen3_xml`, restarted, re-ran empty-KV weather. Clean call. Isolate `2026-09-19_8009_tools-omp-v1.json`: `tool_calls_present=1`, `xml_in_content=false`.
+
+Night-2 tools-at-depth was already on disk from the `hermes` pass. I did not pretend those rows passed.
+
+| Depth | Parser on the box | Tool call |
+|---|---|---|
+| empty KV | our `qwen3_xml` patch | clean, no XML |
+| 32k resident | Cruz/`hermes` (pre-patch) | **fail** — no tool call |
+| 128k resident | Cruz/`hermes` (pre-patch) | **fail** — no tool call |
+
+This is the number I care about for agent work. Parser is now our problem, solved. The engine death on the second generate is not.
 
 ---
 
@@ -184,7 +196,7 @@ vllm serve /home/yum-spark-1/models/Qwen3.8-Flash-Next-EXL3 \
   --enable-prefix-caching \
   --trust-remote-code \
   --enable-auto-tool-choice \
-  --tool-call-parser qwen3_xml \
+  --tool-call-parser qwen3_xml \  # desk patch; Cruz b942e1f ships none, hermes leaks XML
   --reasoning-parser qwen3 \
   --mamba-ssm-cache-dtype bfloat16 \
   --speculative-config '{"method":"mtp","num_speculative_tokens":3}'
@@ -194,7 +206,7 @@ Two streaming chat completions, tools on, do not restart between them. Req 1: ~5
 
 Smaller grid cells (≤35k unique-salt, `max_tokens≤2048`, thinking off, no tool follow-up) did not hit this on this kit.
 
-Ruled out: wrong port, wrong served id, `hermes` parser (crash remains with `qwen3_xml`), dual-node / NCCL (this is TP=1), missing pack, KV too small for 60k.
+Ruled out: wrong port, wrong served id, `hermes` parser (we patched that; crash remains with our `qwen3_xml`), dual-node / NCCL (this is TP=1), missing pack, KV too small for 60k.
 
 Likely knobs for Cruz: CUDA-graph + QSA paged kernel + chunked prefill 832 on a 57k–60k cached prefix (capture sizes max 32); warmup for those three QSA kernels at Hermes prompt size; the inductor `mm` shape `(10240, 336)` / `reinterpret_tensor` layout on GB10 bf16; MTP k=3 still on during the 832-token chunk.
 
@@ -213,6 +225,7 @@ I did not call this a pass because count-to-200 looks like 65.9.
 Recipe: [vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe](https://github.com/vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe) `@b942e1f`.  
 Plugin: [vcruz305/vllm-exl3](https://github.com/vcruz305/vllm-exl3) `@08ed1bf`.  
 Quant: [turboderp/Qwen3.8-Flash-Next-exl3](https://huggingface.co/turboderp/Qwen3.8-Flash-Next-exl3) rev `3.05bpw_h5_ng5`.  
+Desk patch (ours, not in Cruz HEAD): `--enable-auto-tool-choice --tool-call-parser qwen3_xml`. Cruz ships no tool parser; `hermes` dumps Qwen3 XML into `content`.  
 Strain: `qwen38-fn-exl3/vllm-tp1/vcruz/b942e1f`. Isolates: `2026-09-19_8009_*.json`.  
 Power rate: EIA, US residential. API prices from 19 Sep 2026 (Grok 4.6 first-party list, $6.00/M out).  
 Not comparable: [Qwen3.8-Flash-Next NVFP4 on two DGX Sparks](2026-09-18-qwen38-flash-next-nvfp4-two-sparks.md) `@d2f54b7`.
