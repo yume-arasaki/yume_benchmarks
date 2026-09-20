@@ -85,12 +85,23 @@ Tools at depth call. I am not printing the 3k tok/s on a 17-token tool after a 3
 
 ## Warm session
 
+First night, tools on, one turn. Prefill **980** / **973**. The shim holds XML until eos, so I am not printing 17k–386k decode on 57–58 tokens.
+
 | I asked | Prompt tokens | What it did |
 |---|---:|---|
-| Tower game as one HTML file | 35,649 | **tool call** (`write_file` / similar), 58 tokens |
+| Tower game as one HTML file | 35,649 | **tool call** (`bash`), 58 tokens |
 | Spaced-repetition app | 37,482 | **tool call** (`web_search`), 57 tokens |
 
-Those turns are prefill-dominated. I am not putting 17,000 tok/s next to a 57-token tool dump that the shim holds until eos.
+Then a follow-up with tools off, 2048 streamed HTML, `ignore_eos`. That is the real decode. Same serve, same strain.
+
+| I asked | Prompt tokens | Decode tok/s | Engine | Draft |
+|---|---:|---:|---:|---:|
+| Same tower, write the HTML | 36,578 | **86.8** | 86.7 | 86% |
+| Same flashcard app, write the HTML | 36,881 | **88.3** | 88.2 | 87% |
+
+Both hit `length` at 2048. Prefill 1,040 / 1,018. Wall ~35 tok/s because the first token still waits ~35 s. Tower preview is `<title>Tower Stack</title>`. Flashcard is FSRS-lite in one file. GPU rail: 3,653 J / 1.78 J/tok and 3,715 J / 1.81 J/tok.
+
+The tower's first generate turn (tools still on, max_tokens=256) hit `length` with **no** tool call. Hermes's first generate turn did call `web_search` (43 tokens). Those are not the 86.8 / 88.3 rows. The original tool-call isolates stay on disk.
 
 ---
 
@@ -107,6 +118,6 @@ Hermes on this serve survived an 80k tool loop (the overlay died). It also emitt
 Custom ExLlamaV3: [vcruz305/exllamav3](https://github.com/vcruz305/exllamav3) `@523ecd3`.  
 Recipe launcher: [vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe](https://github.com/vcruz305/Qwen3.8-Flash-Next-EXL3-DGX-Spark-recipe) `scripts/exl3_native/tuning/run-qwen38-exl3.sh`.  
 Quant: [turboderp/Qwen3.8-Flash-Next-exl3](https://huggingface.co/turboderp/Qwen3.8-Flash-Next-exl3) rev `3.05bpw_h5_ng5`.  
-Strain: `qwen38-fn-exl3/exllamav3-native/vcruz/523ecd3`. Isolates: `2026-09-20_8009n_*.json`.  
+Strain: `qwen38-fn-exl3/exllamav3-native/vcruz/523ecd3`. Isolates: `2026-09-20_8009n_*.json`. Generate follow-up: `2026-09-20_8009n_omp-workload-35k_generate.json`, `2026-09-20_8009n_hermes-workload-35k_generate.json`.  
 Slow shim (kept): [19 Sep native](2026-09-19-qwen38-flash-next-exl3-native-one-spark.md). Overlay fail: [19 Sep `grid_test_failed`](2026-09-19-qwen38-flash-next-exl3-one-spark.md).  
 Power: EIA US residential. API: Grok 4.6 $6.00/M out, 20 Sep 2026.
