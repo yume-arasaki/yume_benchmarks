@@ -30,7 +30,7 @@ Two runs, headline is the better one. Smoke: 17 × 19 → **323**.
 | A JSON blob of fake GPU stats | **66.2** | 66.2 | 65.0 |
 | `2^10 + 3^5`, integer only | **14.8** | | |
 
-C2/C4 ≈ C1 is the lock, not a measurement error. Count drafts at **99%** accept; that is why 107 beats his 79 on a different code prompt.
+C2/C4 ≈ C1 is the lock, not a measurement error. Count drafts at **99%** accept; that is why 107 beats his 79 on a different code prompt. His **53** prose is his 350-word story through `chat.py`. My **71.7** is the hash-map 600 on this grid. Same fork, same SHA 523ecd3. Different job. Printed, never subtracted.
 
 The arithmetic answer is 1267. It said 1283. Speed is 14.8. Both are true.
 
