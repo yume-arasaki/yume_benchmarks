@@ -18,9 +18,10 @@ Not a tool. Not a recipe. Just the write-ups.
 | 26 Sep 2026 | [Qwen3.8-Flash-Next hibrid48 on two DGX Sparks (full agent grid, YaRN 1M)](reports/2026-09-26-qwen38-flash-next-hibrid48-two-sparks.md) |
 | 28 Sep 2026 | [Qwen3.8-Flash-Next hibrid48 v4.1 on two DGX Sparks (second grid, Hermes PR)](reports/2026-09-28-qwen38-flash-next-hibrid48-v41-two-sparks.md) |
 | 1 Oct 2026 | [GLM-5.3-Flash TensorFold on two DGX Sparks (engine swap, full grid)](reports/2026-10-01-glm53-flash-tensorfold-two-sparks.md) |
+| 2 Oct 2026 | [GLM-5.3-Flash on Mia's own TensorFold recipe, two DGX Sparks (aligned weights, flat falloff)](reports/2026-10-02-glm53-flash-mia-tensorfold-two-sparks.md) |
 
 Next time I run something, it goes in `reports/` with a date.
 
-Quick take from that write-up: two Sparks, Mia's EXL3 recipe `9c0794b`, thinking off. Count-to-200 **66.4 / 133.4 / 187.6** at 1 / 2 / 4 streams (she posts 62.9). Essay **28.5 / 57.3 / 66.4**. Clamps **61.3 / 120.7 / 177.3**. Long context doesn't fall over. A warm session writing a tiny game is **43.8**. I'm not averaging those.
+Quick take from the newest write-up: Mia's own TensorFold kit `@1f3d909`, aligned TR3 weights, thinking off. Count-to-200 **112.8 / 175.8 / 249.8** at 1 / 2 / 4 streams (she posts 114.7 at 1). Essay **59.2**. Clamps **95.4**. Ctx-decode is flat 54.9 to 49.9 from 8k to 524k, needle 18 of 18 to 900k. Three grids on this model now — the engine was always the speed story, not the weights. I'm not averaging those.
 
 License MIT. The numbers are mine. The serve recipe is Mia's.
