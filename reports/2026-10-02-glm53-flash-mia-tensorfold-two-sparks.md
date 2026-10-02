@@ -38,8 +38,9 @@ This is why I keep grids on this engine. Ctx-decode, 256 forced tokens after pac
 | 131k | 54.2 |
 | 262k | 50.8 |
 | 524k | 49.9 |
+| 874k | 44.6 |
 
-Flat. My vLLM strains fall off a shelf here — the hibrid48 grid went 26.1 to 15.2 across the same ladder. The latent FP8 cache holds decode at half a million tokens of context within ten percent of empty. That is the whole ballgame for long agent sessions, and it is not a small-model trick: this is a 309B-class MoE.
+Flat. At 874k actual tokens — eighty-three percent of the full window — decode still holds 81 percent of the empty-context rate. My vLLM strains fall off a shelf here — the hibrid48 grid went 26.1 to 15.2 across a shorter ladder. The latent FP8 cache holds decode at depth. That is the whole ballgame for long agent sessions, and it is not a small-model trick: this is a 309B-class MoE.
 
 Needle at six depths, 5/50/95 positions: **18 of 18** found, including the 900k row (879k actual tokens). Prefill at depth: 1,888 tok/s at 32k, 1,340 at 524k — close to their posted 1,979.
 
