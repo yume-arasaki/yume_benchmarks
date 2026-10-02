@@ -46,6 +46,10 @@ Needle at six depths, 5/50/95 positions: **18 of 18** found, including the 900k 
 
 Jobs keep their shape at 131k: structured 107.4, prose 59.8, code 94.0, tools 212.4. Client towers at 35k: the OMP tower writes 2,048 tokens at **78.1**, tool calls clean. The Hermes client lands a 65-token tool-call turn at **51.8**. Tool parsing is exact — a `get_weather` call with `{"city":"Tokyo"}`, finish reason `tool_calls`, no XML drool.
 
+The generate follow-up — turn two, no tools, 2,048 streamed tokens of real HTML after the tool round-trip — lands **69.5** on the OMP tower and **69.7** on the Hermes client, both at ~32k context. That is the number an agent actually feels building something, and it sits above the empty-context prose lane because the code-shaped drafting carries it.
+
+The concurrency ladder tops at four streams on this serve by design. Prose-600 aggregates: 1 stream 53.5, 2 streams 72.8, 4 streams **97.3**. Past four the requests queue — eight concurrent still completes (67.5 aggregate, 11.8s median first-token) but the chart ceiling is four. Energy per token bottoms at C4: 1.13 J/tok on the summed rail.
+
 ## What still fails
 
 Arithmetic. `2^10 + 3^5` comes back wrong with thinking off and with thinking on. Same wobble as yesterday's strain and the MiMo grid before it. The drafting path is exact — drafted equals serial, verified per round — so this is the model, not the engine. It gets charted as a fail, not footnoted.
