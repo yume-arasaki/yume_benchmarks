@@ -19,9 +19,10 @@ Not a tool. Not a recipe. Just the write-ups.
 | 28 Sep 2026 | [Qwen3.8-Flash-Next hibrid48 v4.1 on two DGX Sparks (second grid, Hermes PR)](reports/2026-09-28-qwen38-flash-next-hibrid48-v41-two-sparks.md) |
 | 1 Oct 2026 | [GLM-5.3-Flash TensorFold on two DGX Sparks (engine swap, full grid)](reports/2026-10-01-glm53-flash-tensorfold-two-sparks.md) |
 | 2 Oct 2026 | [GLM-5.3-Flash on Mia's own TensorFold recipe, two DGX Sparks (aligned weights, flat falloff)](reports/2026-10-02-glm53-flash-mia-tensorfold-two-sparks.md) |
+| 3 Oct 2026 | [Qwen3.8-Flash-Next on one DGX Spark (bilikaz v5.1, full grid)](reports/2026-10-03-qwen38-flash-next-one-spark.md) |
 
 Next time I run something, it goes in `reports/` with a date.
 
-Quick take from the newest write-up: Mia's own TensorFold kit `@1f3d909`, aligned TR3 weights, thinking off. Count-to-200 **112.8 / 175.8 / 249.8** at 1 / 2 / 4 streams (she posts 114.7 at 1). Essay **59.2**. Clamps **95.4**. Ctx-decode is flat 54.9 to 49.9 from 8k to 524k, needle 18 of 18 to 900k. Three grids on this model now — the engine was always the speed story, not the weights. I'm not averaging those.
+Quick take from the newest write-up: vr8vr8's single-Spark recipe v5.1 `@79223f6`, thinking off. Count-to-200 **81.7 / 146.2 / 244.4** at 1 / 2 / 4 streams. Essay **58.2**. Clamps **83.9**. Sixteen seats to **282.6** aggregate, ctx flat 48.6 to 49.4 wall to wall, needle 12 of 12. Roughly 60 to 70 percent of his dual grid's single-stream decode, but double the seats and a free second box. Fleet topology as a menu, not a marriage. I'm not averaging those.
 
 License MIT. The numbers are mine. The serve recipe is Mia's.
