@@ -52,9 +52,9 @@ The thing the single box does that the dual never did on this recipe: concurrenc
 | 8 | 189.6 |
 | 16 | 282.6 |
 
-My dual serve on this model capped at 8 streams. Sixteen concurrent completions on one desk-side box. If your work is many parallel agents rather than one deep one, this shape wins.
+My dual serve on this model was measured to four streams — 383.1 aggregate structured at C4 — with the recipe configured well past that. Sixteen concurrent completions on one desk-side box. If your work is many parallel agents rather than one deep one, this shape wins.
 
-Why the seats doubled: RecoverSSM. This model mixes attention layers with recurrent state-machine layers, and a speculative draft used to mean saving and restoring the recurrent state for every drafted branch. His port verifies all drafts from one saved state and replays only the accepted tokens. Deeper drafts stop costing memory, which is what lets depth go to 7 while the KV pool grows to 876k tokens on the same silicon. His numbers say it plainly: the pool was 813k at depth 6 on v5, now 876k at depth 7.
+What RecoverSSM changed: this model mixes attention layers with recurrent state-machine layers, and a speculative draft used to mean saving and restoring the recurrent state for every drafted branch. His port verifies all drafts from one saved state and replays only the accepted tokens. Deeper drafts stop costing memory, which is what lets depth go to 7 while the KV pool grows to 876k tokens on the same silicon. His numbers say it plainly: the pool was 813k at depth 6 on v5, now 876k at depth 7.
 
 ## The context window
 
