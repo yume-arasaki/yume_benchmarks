@@ -33,6 +33,15 @@ Post: `2026-10-06` map ("Insane developments on Qwen 3.8 Flash"). Every row in t
 
 - ISTA-DASLab GSQ-RCO: `https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF` (raw README re-fetched 2026-10-06, snapshot in workspace `dd_cache/ista_readme_raw.md`): IQ3_S 3.50 bpw, 54.8 + 28.8 GB shards = 83.6 GB total; task avg 93.26 vs BF16 base 93.12 (AIME25 100.00, GPQA-D 92.93 vs 91.92, LCBv6 86.86) — above BF16 base on their suite.
 
+## Mac lane (64 GB+ unified)
+
+- Engines (two, not just GGUF): TensorFold on M1-M4 (oQ kernels, scaled n-gram table, dense projections on matrix units pre-M5; releases v0.4.0-v0.6.3) and oMLX (owns the oQ format, SSD-paged tiered KV, menu-bar app).
+- Official TF Mac checkpoint: `https://huggingface.co/TensorFold/Qwen3.8-Flash-Next-MLX-oQ4-MTP` (oQ2 variant also published). Live via HF API 2026-10-06.
+- oMLX author's checkpoint: `https://huggingface.co/Jundot/Qwen3.8-Flash-Next-oQ4e-mtp`. Live via HF API 2026-10-06.
+- oMLX serves Flash-Next: evidenced by TF v0.3.6.3 benching its prompts "level with oMLX at 32k and 64k" on M3 Ultra.
+- Engines: `https://github.com/ashhart/TensorFold` · `https://github.com/jundot/omlx`.
+- HONEST GAP: no published absolute t/s for the 180B on any Mac, any engine. Sub-64 GB Mac lane = Qwen3.8-27B dense (131-160 t/s M5 Ultra DFlash2 oQ4e, TF v0.6.0; 16 streams @ 32k on 64 GB, TF v0.4.0). Trap: oMLX's 28.6 t/s Thunderbolt bench is Qwen3.6-27B, different family.
+
 ## First-party rows (repo reports)
 
 - 1x Spark EXL3 native (107 count / 71.7 prose / 15-15 needle @ 243k): `reports/2026-09-20-qwen38-flash-next-exl3-native-one-spark.md`
