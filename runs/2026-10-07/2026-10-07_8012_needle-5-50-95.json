@@ -1,0 +1,226 @@
+{
+  "run_id": "2026-10-07_8012_needle-5-50-95",
+  "when": "2026-10-06T21:32:11Z",
+  "strain_id": "cyberfrost-sage-exl3/tabby-coopmk/vcruz/047ce72",
+  "checkpoint": "cyberfrost-sage-exl3",
+  "recipe_sha_at_bench": "047ce72",
+  "live_sha_match": true,
+  "protocol": {
+    "id": "needle-5-50-95-v1",
+    "metric": "n_hit"
+  },
+  "lane": "needle",
+  "host": "spark-1",
+  "port": 8012,
+  "thinking": false,
+  "served_id": "cyber-frost-3.8",
+  "source": "scripts/yume_arasaki_night23_cyberfrost.py",
+  "headline": {
+    "n_hit": 15,
+    "n_total": 15
+  },
+  "rows": [
+    {
+      "target": 8192,
+      "prompt_tokens": 8263,
+      "hits": {
+        "P05": true,
+        "P50": true,
+        "P95": true
+      },
+      "n_hit": 3,
+      "ok": true,
+      "ttft_s": 10.411971584078856,
+      "prefill_tok_s": 793.6057002532652,
+      "content": "P05=6CD069 P50=E6ADC8 P95=6611BB",
+      "energy": {
+        "rail": "gpu_nvidia_smi",
+        "nodes": 1,
+        "n_samples": 8,
+        "mean_pair_w": 50.28124999999999,
+        "joules": 589.3807368694054,
+        "interval_s": 1.0
+      }
+    },
+    {
+      "target": 32768,
+      "prompt_tokens": 33366,
+      "hits": {
+        "P05": true,
+        "P50": true,
+        "P95": true
+      },
+      "n_hit": 3,
+      "ok": true,
+      "ttft_s": 33.93088341597468,
+      "prefill_tok_s": 983.3519390270656,
+      "content": "P05=FD916E P50=5AE4A2 P95=772FC6",
+      "energy": {
+        "rail": "gpu_nvidia_smi",
+        "nodes": 1,
+        "n_samples": 23,
+        "mean_pair_w": 59.89869565217393,
+        "joules": 2182.460436127448,
+        "interval_s": 1.0
+      }
+    },
+    {
+      "target": 65536,
+      "prompt_tokens": 65400,
+      "hits": {
+        "P05": true,
+        "P50": true,
+        "P95": true
+      },
+      "n_hit": 3,
+      "ok": true,
+      "ttft_s": 63.25590854207985,
+      "prefill_tok_s": 1033.8955128040543,
+      "content": "P05=792E4C P50=C9E9C6 P95=0D9BB2",
+      "energy": {
+        "rail": "gpu_nvidia_smi",
+        "nodes": 1,
+        "n_samples": 41,
+        "mean_pair_w": 66.8321951219512,
+        "joules": 4343.587830785735,
+        "interval_s": 1.0
+      }
+    },
+    {
+      "target": 110000,
+      "prompt_tokens": 113842,
+      "hits": {
+        "P05": true,
+        "P50": true,
+        "P95": true
+      },
+      "n_hit": 3,
+      "ok": true,
+      "ttft_s": 108.78034391696565,
+      "prefill_tok_s": 1046.5309806971932,
+      "content": "P05=02CEF4 P50=7C62D4 P95=18A15B",
+      "energy": {
+        "rail": "gpu_nvidia_smi",
+        "nodes": 1,
+        "n_samples": 69,
+        "mean_pair_w": 69.57101449275363,
+        "joules": 7695.638411708967,
+        "interval_s": 1.0
+      }
+    },
+    {
+      "target": 240000,
+      "prompt_tokens": 243697,
+      "hits": {
+        "P05": true,
+        "P50": true,
+        "P95": true
+      },
+      "n_hit": 3,
+      "ok": true,
+      "ttft_s": 233.14271899999585,
+      "prefill_tok_s": 1045.2696144459237,
+      "content": "P05=421F9D P50=74BFC7 P95=B5728F",
+      "energy": {
+        "rail": "gpu_nvidia_smi",
+        "nodes": 1,
+        "n_samples": 145,
+        "mean_pair_w": 69.10172413793103,
+        "joules": 16387.7351586241,
+        "interval_s": 1.0
+      }
+    }
+  ],
+  "energy": {
+    "rail": "gpu_nvidia_smi",
+    "nodes": 1,
+    "n_samples": 145,
+    "mean_pair_w": 69.10172413793103,
+    "joules": 16387.7351586241,
+    "interval_s": 1.0,
+    "joules_per_completion_tok": 565.0943158146241,
+    "joules_per_prompt_tok": 0.06724635575581192
+  },
+  "cost": {
+    "theoretical": {
+      "electricity_key": "us_residential",
+      "usd_per_kwh": 0.1834,
+      "api_id": "grok-4.6",
+      "api_output_usd_per_mtok": 6.0,
+      "duty": "theoretical",
+      "duty_factor": 1.0,
+      "aggregate_tok_s": 1046.5309806971932,
+      "tokens_per_day_ceiling": 90420276.73223749,
+      "joules_per_completion_tok": 565.0943158146241,
+      "usd_per_million_completion_tok_gpu_rail": 28.78841597788946,
+      "usd_energy_per_day_gpu_rail": 2603.0565394035325,
+      "usd_energy_per_day_wall_estimate": 5726.724386687772,
+      "usd_api_output_per_day": 542.5216603934249,
+      "usd_api_input_per_day_scaled": 1519665.5295735227,
+      "api_vs_local_output_ratio": 0.20841716350799624,
+      "rail": "gpu_nvidia_smi",
+      "note": "GPU-rail only; dual TP=2 already summed. Capex of the Sparks not included."
+    },
+    "agent": {
+      "electricity_key": "us_residential",
+      "usd_per_kwh": 0.1834,
+      "api_id": "grok-4.6",
+      "api_output_usd_per_mtok": 6.0,
+      "duty": "agent",
+      "duty_factor": 0.7,
+      "aggregate_tok_s": 1046.5309806971932,
+      "tokens_per_day_ceiling": 63294193.712566234,
+      "joules_per_completion_tok": 565.0943158146241,
+      "usd_per_million_completion_tok_gpu_rail": 28.78841597788946,
+      "usd_energy_per_day_gpu_rail": 1822.1395775824728,
+      "usd_energy_per_day_wall_estimate": 4008.7070706814407,
+      "usd_api_output_per_day": 379.7651622753974,
+      "usd_api_input_per_day_scaled": 1063765.8707014658,
+      "api_vs_local_output_ratio": 0.20841716350799622,
+      "rail": "gpu_nvidia_smi",
+      "note": "GPU-rail only; dual TP=2 already summed. Capex of the Sparks not included."
+    },
+    "deepseek-v4.1-flash": {
+      "theoretical": {
+        "electricity_key": "us_residential",
+        "usd_per_kwh": 0.1834,
+        "api_id": "deepseek-v4.1-flash",
+        "api_output_usd_per_mtok": 1.2,
+        "duty": "theoretical",
+        "duty_factor": 1.0,
+        "aggregate_tok_s": 1046.5309806971932,
+        "tokens_per_day_ceiling": 90420276.73223749,
+        "joules_per_completion_tok": 565.0943158146241,
+        "usd_per_million_completion_tok_gpu_rail": 28.78841597788946,
+        "usd_energy_per_day_gpu_rail": 2603.0565394035325,
+        "usd_energy_per_day_wall_estimate": 5726.724386687772,
+        "usd_api_output_per_day": 108.50433207868498,
+        "usd_api_input_per_day_scaled": 227949.8294360284,
+        "api_vs_local_output_ratio": 0.04168343270159925,
+        "rail": "gpu_nvidia_smi",
+        "note": "GPU-rail only; dual TP=2 already summed. Capex of the Sparks not included."
+      },
+      "agent": {
+        "electricity_key": "us_residential",
+        "usd_per_kwh": 0.1834,
+        "api_id": "deepseek-v4.1-flash",
+        "api_output_usd_per_mtok": 1.2,
+        "duty": "agent",
+        "duty_factor": 0.7,
+        "aggregate_tok_s": 1046.5309806971932,
+        "tokens_per_day_ceiling": 63294193.712566234,
+        "joules_per_completion_tok": 565.0943158146241,
+        "usd_per_million_completion_tok_gpu_rail": 28.78841597788946,
+        "usd_energy_per_day_gpu_rail": 1822.1395775824728,
+        "usd_energy_per_day_wall_estimate": 4008.7070706814407,
+        "usd_api_output_per_day": 75.95303245507948,
+        "usd_api_input_per_day_scaled": 159564.88060521986,
+        "api_vs_local_output_ratio": 0.04168343270159924,
+        "rail": "gpu_nvidia_smi",
+        "note": "GPU-rail only; dual TP=2 already summed. Capex of the Sparks not included."
+      }
+    }
+  },
+  "note": "Yume_Arasaki night2 retrieve. Unique salt. Truth=usage.prompt_tokens.",
+  "client": "raw-http"
+}
