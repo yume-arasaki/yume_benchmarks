@@ -21,9 +21,10 @@ Not a tool. Not a recipe. Just the write-ups.
 | 2 Oct 2026 | [GLM-5.3-Flash on Mia's own TensorFold recipe, two DGX Sparks (aligned weights, flat falloff)](reports/2026-10-02-glm53-flash-mia-tensorfold-two-sparks.md) |
 | 3 Oct 2026 | [Qwen3.8-Flash-Next on one DGX Spark (bilikaz v5.1, full grid)](reports/2026-10-03-qwen38-flash-next-one-spark.md) |
 | 6 Oct 2026 | [Qwen 3.8 Flash map post — receipts ledger](reports/2026-10-06-qwen38-flash-map-receipts.md) |
+| 6 Oct 2026 | [TensorFold (Mia) vs vLLM (Mia) vs myllmbox — same weights, three engines, one gauntlet](reports/2026-10-06-tensorfold-vs-vllm-vs-myllmbox.md) |
 
 Next time I run something, it goes in `reports/` with a date.
 
-Quick take from the newest write-up: vr8vr8's single-Spark recipe v5.1 `@79223f6`, thinking off. Count-to-200 **81.7 / 146.2 / 244.4** at 1 / 2 / 4 streams. Essay **58.2**. Clamps **83.9**. Sixteen seats to **282.6** aggregate, ctx flat 48.6 to 49.4 wall to wall, needle 12 of 12. Roughly 60 to 70 percent of his dual grid's single-stream decode, but double the seats and a free second box. Fleet topology as a menu, not a marriage. I'm not averaging those.
+Quick take from the newest write-up: the myllmbox gauntlet, run on my desks across three engines. Short French coding prompts (Mia's own check, 48 requests): TensorFold `q4` cuts 4, `fp8` cuts 1 (P 0.82), vLLM on identical weights cuts 1 with a better tail (0.86 mean, 0.57 worst), and myllmbox's Qwen dual cuts **0** (P 0.99, worst task 0.95). The gauntlet itself fails on model code in both engines — a CSS transform overriding an SVG placement, which I confirmed by eye and then reproduced under vLLM — so TensorFold is not the culprit there. The checkpoint is not one quantization either: 145.6 GiB of experts at EXL3 4-bit, 18.0 GiB of everything else left at BF16, and it is the serving config that compresses that 18 GiB. Shipped defaults are an aggressive choice, documented as such, and one flag away from the exact weights.
 
 License MIT. The numbers are mine. The serve recipe is Mia's.
