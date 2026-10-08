@@ -48,6 +48,19 @@ Post basis: `drafts/2026-10-08-mac-lane-flashnext-post.md` (research doc: `2026-
 - baguaai 2-bit YaRN stress test: writeup self-contradicts (35.8k vs 350K), unresolvable from snapshot, cut pending OP.
 - M4 Ultra: does not exist (Ars Technica/macrumors Mar 2025; Apple Studio M5 newsroom Aug 2026). Structural note, not a row.
 
+
+## Deep-dig additions (round 4, same day — MacStories + engine-issue receipts)
+
+- MacStories M5 Ultra review (independent, Apple-sent HW), oMLX 0.7.0.dev2, oQ4e-mtp: M5U-256 vs M3U-512 short prompts 108 vs 70 (+54%); M5U ladder 90.7@4k / 87.8@16k / 83.8@64k / 60.6@128k / 74.7@256k; TTFT 2.5s vs 4.7s @4k, 101.5s vs 244.9s @256k; prefill 2,057-2,771 vs 861-1,112; quant ladder M5U oQ4e 111.6 (code 143) / oQ5e 100.0 / oQ6e 95.2 SSD / oQ8e 86.8 SSD; M3U-512 77.3/71.0/71.9/63.5; concurrency 66 solo -> 81 @3 streams; 5090: PP ~3,000 vs ~1,700, decode +25% steady, 32 GB cannot hold 262k — REPORTED (independent review), macstories.net/stories/m5-ultra-mac-studio-review-the-dream-mac-for-local-ai-agents
+- jundot/omlx#3353 (M3U-512, oMLX 0.6.4, MTP d5): prose 52.4, tools ~59 (accept 87-92%), greedy 29.7 load-insensitive, 41@15k -> 31.9@91k, prefill ~808 flat; MTP -40% under sibling load vs greedy +-0 — PROJECT (engine issue, M3U-512)
+- jundot/omlx#3763 (M3U-256, fused-kernel branch): 102@1k greedy (main 72), 8@16k 134 vs 62 (2.2x) — PROJECT (engine discussion, branch numbers)
+- mlx-community HF discussion #1 (M3U-512, oMLX 0.6.3 stock): 24.6-25.6 short, 17.9 incl prefill — REPORTED, huggingface.co/mlx-community/Qwen3.8-Flash-Next-4bit/discussions/1
+- llm-bench.io (M4 Max, ddalcu mixed-4/8): 72.0 median 71.6, PP 491.6 — REPORTED, llm-bench.io/benchmarks/cmu6uzsfd00hl01qe3gc34lap
+- Weschera/qwen38-flash-next-omlx-mac (M4 Max-128 Studio, oMLX 0.6.4 custom, MTP d6 + aggressive burst): 83.06 code / 71-74 structured, byte-identical — REPORTED (reproducible guide), github.laiyagushi.com/Weschera/qwen38-flash-next-omlx-mac
+- garnermccloud/Qwen3.8-Flash-Next-MLX-SSD-Stream (M4 Max-128, mlx-serve, BF16 core + Q4 experts, 262k ctx, 51.2 GB lookup SSD): 71-74 warm, serial 33 — REPORTED, huggingface.co/garnermccloud/Qwen3.8-Flash-Next-MLX-SSD-Stream
+- RockTalk MLX-4bit + gmlx + standalone 4B MTP drafter (M3U-512): code 80.0, repetitive 86.1, prose 55.6, short 69.6; plain greedy 26.4 — REPORTED, huggingface.co/RockTalk/Qwen3.8-Flash-Next-MLX-4bit
+- tacos8me.github.io/m5-ultra (M5U-80c 256, oQ8e, 8k-1M sweep, own kernels): page exists, numbers not yet fetched — SPEC until fetched
+
 ## Link verification
 
 - HF packs: Jundot/Qwen3.8-Flash-Next-oQ4e-mtp, TensorFold/Qwen3.8-Flash-Next-MLX-oQ4-MTP verified live 2026-10-06 (prior ledger); Youssofal/Qwen3.8-Flash-Next-MTPLX-Optimized-Speed to re-verify via HF API before reply ships.
