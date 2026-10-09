@@ -61,6 +61,16 @@ Post basis: `drafts/2026-10-08-mac-lane-flashnext-post.md` (research doc: `2026-
 - RockTalk MLX-4bit + gmlx + standalone 4B MTP drafter (M3U-512): code 80.0, repetitive 86.1, prose 55.6, short 69.6; plain greedy 26.4 — REPORTED, huggingface.co/RockTalk/Qwen3.8-Flash-Next-MLX-4bit
 - tacos8me.github.io/m5-ultra (M5U-80c 256, oQ8e, 8k-1M sweep, own kernels): page exists, numbers not yet fetched — SPEC until fetched
 
+
+## v6 additions (Claude final pass receipts — appended 2026-10-08 before ship)
+
+- ashhart/TensorFold issue #22 (M5 Ultra, three-engine run, TF 0.3.4): TF 200.7 decode / 471 prefill; oMLX 147 / 3,300-3,600; mlx-serve 160 / 3,000-3,800. Fastest writer, slowest reader 7-10x. Not rerun on 0.6.x — REPORTED, github.com/ashhart/TensorFold/issues/22
+- ashhart/TensorFold issue #116 (drift audit vs high-precision ref, GLM-5.3-Flash, 200 MMLU-Pro): llama.cpp 190, TF bf16 187, TF 4-bit pack 168, TF float32 199. BBH drift 3x llama.cpp. 4-bit weights agree 86% of agent tokens v Q4_K_M 91% (defilan dev.to Mac weekend test). Field reports: invented tool results 3/4 long runs on 0.3.6.3, fabricated user messages (MiaAI-Lab/GLM #105), repeated-token loops (#94) — REPORTED, github.com/ashhart/TensorFold/issues/116
+- ashhart/TensorFold issue #278 (M1-M4 kernel path): only 4-bit packs get the fast kernel; 2-bit ran 2.4x slower on M4 Pro — REPORTED, github.com/ashhart/TensorFold/issues/278
+- TF 8-stream M5 Ultra: 353 v oMLX 226 (plotarmordev run, via vramcalculator) — carries the NOT-weight-matched caveat (4-bit v 5-bit)
+- M5 Ultra 80c ladder row in v6: independent 108 median / tuned 157.7 (DB) both printed
+- Honest-corner caveats carried in v6: M5 Max -30% throttle after ~1 min (kernel-dev receipt); compressed-memory tok/s lie (MTPLX author); dual-M5U TF demo = GLM not Qwen (fxtwitter ashxhart/status/2107921303894151584, verified 2026-10-08)
+
 ## Link verification
 
 - HF packs: Jundot/Qwen3.8-Flash-Next-oQ4e-mtp, TensorFold/Qwen3.8-Flash-Next-MLX-oQ4-MTP verified live 2026-10-06 (prior ledger); Youssofal/Qwen3.8-Flash-Next-MTPLX-Optimized-Speed to re-verify via HF API before reply ships.
