@@ -78,3 +78,19 @@ Question: why does decode fall from 11.3 tok/s at 8k to 0.7 at 240k on this reci
 **Concurrency sweep** (isolate `2026-10-12_8012_conc-sweep-c1c4`; sum-of-streams headline, 0.5 s stagger, wall companion stated): prose 21.1 / 33.4 / 48.2 at C1/C2/C4; structured 37.2 / 50.3 / 69.9. Wall flat ~24 / ~36.5 (MAX_BATCH_SIZE=1 serializes).
 
 **Practical reading.** Retrieval at depth is intact (15/15 needles, think512 protocol) but decode cost at depth is a linear tax: 200-token answer at 240k ≈ 5 min. Agent band 10-35k context = 4-12 tok/s, 3-6x under the TensorFold lane on the same architecture.
+
+## Fixable? — the kernel-diff follow-up (2026-10-12, second addendum)
+
+Upstream landed the fix-class commit one day after our bench: `3a8e2fb8` (Oct 9) rewrites the recurrent-state machinery (gdn.cu, gated_delta_net, mamba2) — "single initial recurrent state + input hidden state, re-advance instead of reverting to checkpoint" — the exact subsystem our hypothesis implicated. cruz's fork rebased onto it Oct 10 (`8d5db83c`, exl3 1.6.1).
+
+We built the tip (`4d98d39a`, 1.6.1.post1) in an isolated worktree and re-ran the ladder, same pack, same config:
+
+| depth | 1.5.1 benched | 1.6.1 rewrite live |
+|---|---|---|
+| 8k | 11.73 | 11.65 |
+| 32k | 4.22 | 4.40 |
+| 65k | 2.41 | 2.49 |
+| 131k | 1.28 | 1.33 |
+| 240k | 0.70 | 0.73 |
+
+**Identical within noise. The rewrite does not remove the O(N) tax.** So the tax lives in the GLM5Next GDN kernel path itself (chunked delta-rule scan as compiled for GB10, or the long-context sparse-window fallback), not the state handling. TensorFold runs the same architecture flat to 256k, so a fast path exists on this hardware — the fix is kernel work, not config, and the receipts (linear fit R² 0.9997, three controls, rewrite refuted) are the localization package for whoever writes it. Isolate `2026-10-12_8012_depth-fixtest-161`.
