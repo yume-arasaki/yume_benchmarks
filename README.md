@@ -22,6 +22,7 @@ Not a tool. Not a recipe. Just the write-ups.
 | 3 Oct 2026 | [Qwen3.8-Flash-Next on one DGX Spark (bilikaz v5.1, full grid)](reports/2026-10-03-qwen38-flash-next-one-spark.md) |
 | 6 Oct 2026 | [Qwen 3.8 Flash map post — receipts ledger](reports/2026-10-06-qwen38-flash-map-receipts.md) |
 | 6 Oct 2026 | [TensorFold (Mia) vs vLLM (Mia) vs myllmbox — same weights, three engines, one gauntlet](reports/2026-10-06-tensorfold-vs-vllm-vs-myllmbox.md) |
+| 12 Oct 2026 | [RED-SNOW-5.3-FLASH abliterated on one DGX Spark — receipts ledger](reports/2026-10-12-redsnow-one-spark-receipts.md) |
 
 Next time I run something, it goes in `reports/` with a date.
 
