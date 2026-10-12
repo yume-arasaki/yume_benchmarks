@@ -60,3 +60,21 @@ Post basis: "You can run GLM-5.3-Flash abliterated on one DGX Spark" (Claude fin
 - Base GLM-5.3-Flash not run as a third arm — all scores are absolute, no measured delta against the clean base.
 - No KL drift, no HarmBench ASR, no edit forensics.
 - Empty-finals delta (3v0) is a small sample; not tested on other workloads.
+
+## Part 2 addendum (2026-10-12) — depth fall-off investigation + conc sweep
+
+Question: why does decode fall from 11.3 tok/s at 8k to 0.7 at 240k on this recipe?
+
+**Method.** Dense 9-point ladder, 6,281-178,465 actual prompt tokens, 200-token greedy decodes, wall ms/token fitted linearly.
+
+**Result.** ms/token = 37.3 + 7.75 µs × context, R² = 0.9997. A per-token O(N) scan, not a cliff. The context term overtakes the base step at ~5k tokens and is 50x it at 240k. Isolate `2026-10-12_8012_depth-falloff-investigation`.
+
+**Controls (each rules out one suspect).**
+- Aligned GLM-5.3-Flash EXL3 on Mia TensorFold TP2 (2026-10-02 isolate): flat 54.9 → 50.8 tok/s, 8k → 256k. Architecture innocent.
+- CYBER-FROST-3.8 on the same tabby+EXL3 lane (2026-10-07 isolate): flat 47.3 → 39.9 tok/s, 8k → 240k. Recipe family innocent.
+- Drafting disabled at 8k/65k/240k: 11.39 / 2.41 / 0.71 vs 11.73 / 2.41 / 0.70 on. Speculation innocent.
+- Remaining cell: the GLM-5.3 hybrid attention path (linear-attention state handling) on this engine build. Corroborating: merged fork 764b4ad auto-enables the glm5_next recurrent path and reads 25% slower on shallow decode. Kernel-level localization deferred; hypothesis labeled as hypothesis.
+
+**Concurrency sweep** (isolate `2026-10-12_8012_conc-sweep-c1c4`; sum-of-streams headline, 0.5 s stagger, wall companion stated): prose 21.1 / 33.4 / 48.2 at C1/C2/C4; structured 37.2 / 50.3 / 69.9. Wall flat ~24 / ~36.5 (MAX_BATCH_SIZE=1 serializes).
+
+**Practical reading.** Retrieval at depth is intact (15/15 needles, think512 protocol) but decode cost at depth is a linear tax: 200-token answer at 240k ≈ 5 min. Agent band 10-35k context = 4-12 tok/s, 3-6x under the TensorFold lane on the same architecture.
