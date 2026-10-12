@@ -94,3 +94,38 @@ We built the tip (`4d98d39a`, 1.6.1.post1) in an isolated worktree and re-ran th
 | 240k | 0.70 | 0.73 |
 
 **Identical within noise. The rewrite does not remove the O(N) tax.** So the tax lives in the GLM5Next GDN kernel path itself (chunked delta-rule scan as compiled for GB10, or the long-context sparse-window fallback), not the state handling. TensorFold runs the same architecture flat to 256k, so a fast path exists on this hardware — the fix is kernel work, not config, and the receipts (linear fit R² 0.9997, three controls, rewrite refuted) are the localization package for whoever writes it. Isolate `2026-10-12_8012_depth-fixtest-161`.
+
+## CORRECTION (2026-10-12, supersedes the two depth addenda above) — the "O(N) decode tax" was prefill folded into decode
+
+A methodology challenge (Joey) landed after the depth addenda shipped. Verified against raw and confirmed. The dense ladders were non-streaming probes dividing completion tokens by total request wall, so prefill time was folded into the decode rate. The linear fit (37.3 ms + 7.75 µs × ctx, R² 0.9997) was real arithmetic on a contaminated measurement: it measured TTFT growth, not decode cost. The tell was in the challenge's own arithmetic — the slope implies 645 tok/s prefill at 200 generated tokens, which is exactly what a re-measure shows.
+
+**Re-run, corrected protocol** (isolate `2026-10-12_8012_ctx-stream-ttft-decode`): streaming, TTFT = first content chunk minus request send, decode = completion tokens / (last content chunk − first content chunk). Composition probe at 8k/65k/240k confirms zero reasoning_content chunks and t_first_content == t_first_any (the persona template is answer-first), so the decode window is pure content and completion_tokens belongs in the numerator.
+
+| depth | TTFT s | prefill tok/s | decode first→last |
+|---|---|---|---|
+| 8k | 14.08 | 446 | 50.15 |
+| 16k | 22.17 | 558 | 48.60 |
+| 32k | 30.6 | ~630 | ~47 |
+| 65k | 78.55* | 627 | 46.25 |
+| 131k | 152.30 | 640 | 46.65 |
+| 196k | 227.89 | 642 | 45.33 |
+| 240k | 280.09 | 637 | 44.43 |
+
+(*composition probe; ladder shows same shape.)
+
+**Decode declines 11.4% over a 28x context range.** Same class as the comparators (CYBER-FROST qwen38 lane −15.6%, TensorFold GLM −7.5%). There is no O(N) decode tax. There is no engine bug to hand cruz. The four "acquittals" were controls against a phantom: every wall-based ladder would have shown the same line. The 1.5.1-vs-1.6.1 rebuild comparison stands only as "no wall-clock difference."
+
+**What remains true from the earlier addenda:** the needle results (retrieval correctness), the concurrency sweep (wall-based, labeled), the agent lanes, and the serving-pin A/B (two-point method, TTFT-excluded, unaffected).
+
+**Honest costs of this correction:** the Part 2 post draft's investigation section is wrong and must be rewritten before shipping; the cruz findings file must not be sent in its current form; the two depth isolates are marked VOID in the ledger and INDEX.
+
+**Formula register (all metrics, exact):**
+- `wall_tok_s` = completion_tokens / (response-complete timestamp − request-send timestamp). Non-streaming.
+- `decode_tok_s` (night runners, streaming lanes) = completion_tokens / (t_last_chunk − t_first_chunk). Valid ONLY when a content chunk arrives; RED-SNOW ctx rows had ttft_s = None (budget burned in reasoning, no content under the stock night prompt), so decode_s fell back to wall and equals wall_tok_s. Those rows measured prefill+reasoning.
+- `decode_tok_s` (night runners, non-streaming calls) = completion_tokens / wall. Always prefill-contaminated.
+- `decode_tok_s_first_to_last` (corrected protocol) = completion_tokens / (t_last_content − t_first_content), streaming, content chunks only. The honest decode metric.
+- `ttft_s` (streaming) = t_first_content − request send. (night runner: t_first chunk of any content; if none, recorded None)
+- `prefill_tok_s_implied` = prompt_tokens / ttft_s. Approximate: TTFT includes queue + template render + any pre-content emission (zero here, verified).
+- `decode_sum` (conc sweep) = Σ per-stream (completion_tokens / that stream's decode window). MAX_BATCH_SIZE=1 serializes streams, so per-stream decode windows exclude queue time only approximately (staggered starts, 0.5 s). Wall companion = Σ tokens / max stream wall. Both reported; wall is the conservative aggregate.
+- `hermes@35k 78.1` = streaming lane, decode_tok_s formula (t_first→t_last): TTFT 62.2 s, decode window 154 tok / 1.97 s. This one is a true decode number and is NOT comparable to wall-based ladder rows (its 8k-ladder counterpart under the same formula reads ~50, not 11).
+- Two-point pin A/B (22.9 vs 17.1) = (N−1)/(t_N − t_1s-cap): max_tokens=1 call timing one step, then N-token call; TTFT excluded. Unaffected by this correction.
