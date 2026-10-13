@@ -117,7 +117,9 @@ A methodology challenge (Joey) landed after the depth addenda shipped. Verified 
 
 **What remains true from the earlier addenda:** the needle results (retrieval correctness), the concurrency sweep (wall-based, labeled), the agent lanes, and the serving-pin A/B (two-point method, TTFT-excluded, unaffected).
 
-**Honest costs of this correction:** the Part 2 post draft's investigation section is wrong and must be rewritten before shipping; the cruz findings file must not be sent in its current form; the two depth isolates are marked VOID in the ledger and INDEX.
+**Grid lanes re-measured streaming** (isolate `2026-10-12_8012_grid-stream-4lane`, 2 reps each): structured 45.2, code 35.9, json 45.7, prose 27.5 decode first-to-last. The night1 grid numbers (43.2/40.7/32.1/29.2) were wall-based on short prompts, mildly contaminated; code and json shift materially (code's draft ran long pre-first-token; json's first rep hit EOS at 257 tokens). The stream numbers supersede.
+
+**Honest costs of this correction:** the two depth isolates are marked VOID in the ledger and INDEX; drafts derived from the wall-based ladder are non-shipping.
 
 **Formula register (all metrics, exact):**
 - `wall_tok_s` = completion_tokens / (response-complete timestamp − request-send timestamp). Non-streaming.
