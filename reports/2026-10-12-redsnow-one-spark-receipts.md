@@ -121,6 +121,8 @@ A methodology challenge (Joey) landed after the depth addenda shipped. Verified 
 
 **Honest costs of this correction:** the two depth isolates are marked VOID in the ledger and INDEX; drafts derived from the wall-based ladder are non-shipping.
 
+**Agent lane correction (2026-10-12):** the 2026-10-09 hermes lane (78.1 tok/s) was challenged and rerun 3x with the original prompt construction. Consistent 31.9 / 32.0 / 33.6 tok/s decode first-to-last, TTFT 55-57 s at 32,913 prompt tokens. The 78.1 does not reproduce and is retired (154-token decode window, artifact-class). Also corrected: no tool call fired in the original or any rerun rep (tools attached, model answered directly); "live tool call" claims are retracted. Isolate `2026-10-12_8012_agent-lane-rerun-3rep`.
+
 **Formula register (all metrics, exact):**
 - `wall_tok_s` = completion_tokens / (response-complete timestamp − request-send timestamp). Non-streaming.
 - `decode_tok_s` (night runners, streaming lanes) = completion_tokens / (t_last_chunk − t_first_chunk). Valid ONLY when a content chunk arrives; RED-SNOW ctx rows had ttft_s = None (budget burned in reasoning, no content under the stock night prompt), so decode_s fell back to wall and equals wall_tok_s. Those rows measured prefill+reasoning.
@@ -129,5 +131,5 @@ A methodology challenge (Joey) landed after the depth addenda shipped. Verified 
 - `ttft_s` (streaming) = t_first_content − request send. (night runner: t_first chunk of any content; if none, recorded None)
 - `prefill_tok_s_implied` = prompt_tokens / ttft_s. Approximate: TTFT includes queue + template render + any pre-content emission (zero here, verified).
 - `decode_sum` (conc sweep) = Σ per-stream (completion_tokens / that stream's decode window). MAX_BATCH_SIZE=1 serializes streams, so per-stream decode windows exclude queue time only approximately (staggered starts, 0.5 s). Wall companion = Σ tokens / max stream wall. Both reported; wall is the conservative aggregate.
-- `hermes@35k 78.1` = streaming lane, decode_tok_s formula (t_first→t_last): TTFT 62.2 s, decode window 154 tok / 1.97 s. This one is a true decode number and is NOT comparable to wall-based ladder rows (its 8k-ladder counterpart under the same formula reads ~50, not 11).
+- `hermes@35k 78.1` = RETIRED. Streaming window 154 tok / 1.97 s; 3-rep rerun reads 32.0 median. See agent lane correction above.
 - Two-point pin A/B (22.9 vs 17.1) = (N−1)/(t_N − t_1s-cap): max_tokens=1 call timing one step, then N-token call; TTFT excluded. Unaffected by this correction.
