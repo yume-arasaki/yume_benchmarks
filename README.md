@@ -23,6 +23,7 @@ Not a tool. Not a recipe. Just the write-ups.
 | 6 Oct 2026 | [Qwen 3.8 Flash map post — receipts ledger](reports/2026-10-06-qwen38-flash-map-receipts.md) |
 | 6 Oct 2026 | [TensorFold (Mia) vs vLLM (Mia) vs myllmbox — same weights, three engines, one gauntlet](reports/2026-10-06-tensorfold-vs-vllm-vs-myllmbox.md) |
 | 12 Oct 2026 | [RED-SNOW-5.3-FLASH abliterated on one DGX Spark — receipts ledger](reports/2026-10-12-redsnow-one-spark-receipts.md) |
+| 14 Oct 2026 | [RED-SNOW one-Spark Part 2 speed run (streaming protocol)](reports/2026-10-14-redsnow-part2-speed-run.md) — corrected-protocol grid: decode flat 50.1→44.4 across 28x ctx, TTFT 14→280 s, prefill 446-642 tok/s, pin A/B 22.9 vs 17.1, energy rail | `2026-10-12_8012_*` streaming isolates |
 
 Next time I run something, it goes in `reports/` with a date.
 
