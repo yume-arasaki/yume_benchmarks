@@ -89,6 +89,9 @@ clean. The inverse of the RED-SNOW finding (tools attached, never called, XML in
 Mia's EXL3 2-node kit (strain `dsv41-flash-exl3/vllm-tp2/mia/8530568`, 2026-09-14) read 30–35
 at depth on the same boxes; this build holds 57–61 on the same lanes — 1.8–2× in five weeks.
 Her separate 3–4× SGLang line (TP4: 87.7 prose, 1M ctx needle pass) is a different topology.
-sudoingX's own comparison vs TensorFold v0.6.0 + Mia 2.9 bpw: wins code/structured 2–3%, loses
-prose 58.3 vs 62.1, loses prefill. KLD 0.0243 over 254,846 scored positions (their measurement,
+sudoingX's own baseline runs: TensorFold v0.6.0 engine (Zig `ce20a54`) with Mia-AiLab's 2.9 bpw
+pack, executed by them on the same boxes and client — this build wins code +2.5%, structured
++1.7%, loses prose 58.3 vs 62.1 and prefill. Note: TensorFold is a serving engine, not a
+dual-Spark DSV41 recipe; the baseline was their run, not a separate product.
+
 DeepSeek reference implementation).
