@@ -1,0 +1,70 @@
+hardware,tier,metric,month,source,observations,mean_usd
+DGX Spark 128GB,T1,nvidia_list,2025-10,nvidia-forum-announcement,1,3999.0
+DGX Spark 128GB,T1,nvidia_list,2026-02,nvidia-forum-announcement,1,4699.0
+DGX Spark 128GB,T1,nvidia_list,2026-10,theregister,1,6950.0
+DGX Spark 128GB,T3,ebay_asking_median,2026-10,vramglass,2,8820.0
+DGX Spark 128GB,T3,newegg_marketplace_ask,2026-10,newegg-N82E16883986001,1,9899.0
+Mac Studio M3 Ultra 96GB,T1,apple_list,2026-06,worldpriceindex,1,5299.0
+Mac Studio M3 Ultra 96GB,T3,used_96gb_1tb_lowest,2026-10,hardbargains,1,4699.0
+Mac Studio M3 Ultra 96GB,T3,used_ask_allcfg_median,2026-10,hardbargains,1,7456.0
+Mac Studio M5 Ultra 256GB,T1,apple_list_30c,2026-09,openclawdc-apple-configurator,1,9499.0
+Mac Studio M5 Ultra 256GB,T1,apple_list_36c,2026-09,contextstudios-apple-configurator,1,10799.0
+Mac Studio M5 Ultra 96GB,T1,apple_list_30c,2026-09,openclawdc-apple-configurator,1,5499.0
+Mac Studio M5 Ultra 96GB,T1,apple_list_36c,2026-09,contextstudios-apple-configurator,1,6799.0
+MacBook Pro 16 M5 Max,T1,apple_list_128gb,2026-09,openclawdc-apple-configurator,1,5099.0
+RTX 3090,T1,launch_msrp,2020-09,techspot,1,1499.0
+RTX 3090,T3,ebay_asking_median,2026-07,siliconcomps,4,1345.0
+RTX 3090,T3,ebay_asking_median,2026-08,siliconcomps,31,1523.97
+RTX 3090,T3,ebay_asking_median,2026-09,siliconcomps,30,1817.7
+RTX 3090,T3,ebay_asking_median,2026-10,siliconcomps,11,1818.45
+RTX 3090,T4,ebay_sold_avg,2026-01,getpcparts,3,861.33
+RTX 3090,T4,ebay_sold_avg,2026-02,getpcparts,4,926.75
+RTX 3090,T4,ebay_sold_avg,2026-03,getpcparts,4,1030.25
+RTX 3090,T4,ebay_sold_avg,2026-04,getpcparts,3,1084.0
+RTX 3090,T4,ebay_sold_avg,2026-05,getpcparts,4,1063.0
+RTX 3090,T4,ebay_sold_avg,2026-06,getpcparts,1,1125.0
+RTX 3090,T4,ebay_sold_avg,2026-08,getpcparts,5,984.0
+RTX 3090,T4,ebay_sold_avg,2026-09,getpcparts,4,1032.0
+RTX 3090,T4,ebay_sold_avg,2026-10,getpcparts,1,1206.0
+RTX 4090,T1,launch_msrp,2022-10,techspot,1,1599.0
+RTX 4090,T3,ebay_asking_median,2026-07,siliconcomps,4,2685.0
+RTX 4090,T3,ebay_asking_median,2026-08,siliconcomps,31,2903.06
+RTX 4090,T3,ebay_asking_median,2026-09,siliconcomps,30,3282.7
+RTX 4090,T3,ebay_asking_median,2026-10,siliconcomps,11,3545.27
+RTX 4090,T4,ebay_sold_avg,2026-01,getpcparts,3,2331.0
+RTX 4090,T4,ebay_sold_avg,2026-02,getpcparts,4,2308.5
+RTX 4090,T4,ebay_sold_avg,2026-03,getpcparts,4,2150.0
+RTX 4090,T4,ebay_sold_avg,2026-04,getpcparts,3,2133.33
+RTX 4090,T4,ebay_sold_avg,2026-05,getpcparts,4,2248.5
+RTX 4090,T4,ebay_sold_avg,2026-06,getpcparts,4,2311.25
+RTX 4090,T4,ebay_sold_avg,2026-07,getpcparts,4,2269.0
+RTX 4090,T4,ebay_sold_avg,2026-08,getpcparts,5,2332.6
+RTX 4090,T4,ebay_sold_avg,2026-09,getpcparts,4,2621.5
+RTX 4090,T4,ebay_sold_avg,2026-10,getpcparts,1,2214.0
+RTX 5090,T1,launch_msrp,2025-01,techspot,1,1999.0
+RTX 5090,T3,ebay_asking_median,2026-07,siliconcomps,4,4668.75
+RTX 5090,T3,ebay_asking_median,2026-08,siliconcomps,31,5150.71
+RTX 5090,T3,ebay_asking_median,2026-09,siliconcomps,30,6114.77
+RTX 5090,T3,ebay_asking_median,2026-10,siliconcomps,11,6785.73
+RTX 5090,T4,ebay_sold_avg,2026-01,getpcparts,3,2853.33
+RTX 5090,T4,ebay_sold_avg,2026-02,getpcparts,4,3107.75
+RTX 5090,T4,ebay_sold_avg,2026-03,getpcparts,4,3000.0
+RTX 5090,T4,ebay_sold_avg,2026-04,getpcparts,3,2966.67
+RTX 5090,T4,ebay_sold_avg,2026-05,getpcparts,4,3253.0
+RTX 5090,T4,ebay_sold_avg,2026-06,getpcparts,4,3616.25
+RTX 5090,T4,ebay_sold_avg,2026-07,getpcparts,4,3684.0
+RTX 5090,T4,ebay_sold_avg,2026-08,getpcparts,5,3909.8
+RTX 5090,T4,ebay_sold_avg,2026-09,getpcparts,4,4499.0
+RTX 5090,T4,ebay_sold_avg,2026-10,getpcparts,1,4843.0
+RTX 6000 Ada,T3,ebay_asking_median,2026-07,siliconcomps,4,5935.0
+RTX 6000 Ada,T3,ebay_asking_median,2026-08,siliconcomps,31,5989.13
+RTX 6000 Ada,T3,ebay_asking_median,2026-09,siliconcomps,18,7063.67
+RTX 6000 Ada,T3,ebay_asking_median,2026-10,siliconcomps,10,7589.8
+RTX A6000,T3,ebay_asking_median,2026-07,siliconcomps,4,3999.75
+RTX A6000,T3,ebay_asking_median,2026-08,siliconcomps,31,4289.0
+RTX A6000,T3,ebay_asking_median,2026-09,siliconcomps,30,4959.6
+RTX A6000,T3,ebay_asking_median,2026-10,siliconcomps,11,5107.64
+RTX PRO 6000 Blackwell,T1,est_msrp_launch,2025-03,gpupoet,1,8565.0
+RTX PRO 6000 Blackwell,T2,amazon_lowest_track,2026-10,videocardprices,1,17987.0
+RTX PRO 6000 Blackwell,T2,microcenter_instore,2026-10,microcenter,1,14400.0
+RTX PRO 6000 Blackwell,T3,ebay_used,2026-10,videocardprices,1,15899.0

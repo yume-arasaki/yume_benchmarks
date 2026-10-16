@@ -31,3 +31,4 @@ Quick take from the newest write-up: the myllmbox gauntlet, run on my desks acro
 
 License MIT. The numbers are mine. The serve recipe is Mia's.
 | 2026-10-14 | [DeepSeek V4.1 Flash — sudoingX dual-Spark](reports/2026-10-14-dsv41-sudoingx-dual-spark.md) | EXL3 2.7bpw + own kernels + DSpark k5, TP2, :8007 | 135.5 structured · flat 57.6–61.5 to 240k · towers 108.3/88.2 wall-bound | §21 v2+wall+mixture protocol, five artifact catches |
+| 14 Oct 2026 | [GPU price ledger, US market 2026 — receipts for the price post](reports/2026-10-14-gpu-price-ledger.md) |
