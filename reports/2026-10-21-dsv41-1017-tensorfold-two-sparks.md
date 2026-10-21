@@ -16,7 +16,7 @@ who tries.
 
 **Strain:** `dsv41-1017-flash-exl3/tensorfold-tp2/mia/6d54be4f`
 **Recipe:** [MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks) `@75cab1d`
-**Checkpoint:** `Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw` @ `6d54be4f` — **experimental quant, no ppl/KL against the unquantized model**
+**Checkpoint:** `Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw` @ `6d54be4f` — experimental quant (see correction below)
 **Engram:** `deepseek-ai/DeepSeek-V4.1-Flash-1017` @ `1bae0e10`, shards 47 and 48 only, on local disk on both nodes
 **Engine:** TensorFold `deepseek-v41-zig` @ `629c524a`, Zig 0.17.0, image `tensorfold-dsv41:exl3-tp2-8eb5919ff0a4` (built locally — no GHCR tag for these pins)
 **Serve:** spark-1 **:8007**, TP=2 over RoCE, served id `DeepSeek-V4.1-Flash-1017`, `max_batch_size` 4
@@ -261,8 +261,14 @@ budget for a window refusal that looks like an empty successful response.
 
 ## What I did not prove
 
-1. **The experimental quant.** No perplexity or KL against the unquantized model exists, so every
-   number here is "this quant, on this pair", not "DeepSeek-V4.1-Flash-1017".
+1. **The quant's quality, at depth.** [Correction 2026-10-21: this report first said "no ppl/KL
+   exists". The model card — updated 2026-10-20, after our bench — now carries teacher-forced
+   next-token fidelity against the original `1bae0e10` weights: 100 conversations of at most 4,029
+   tokens, KL 0.0137 nats [0.0115, 0.0165], top-1 agreement 96.6% [96.2, 96.9], reference top-1 in
+   the quant's top-5 on 99.98% of positions, and a paired comparison vs LibertAIDAI's 2.9 bpw build:
+   KL −0.00171 nats, top-1 +0.36 pp — EAQ slightly ahead at identical widths. What still does not
+   exist: long-context fidelity, perplexity, standard eval scores. So speed numbers remain "this
+   quant, on this pair", and the fidelity story is the card's short-context one.]
 2. **Four concurrent long prompts.** See the window section. One works; four are unmeasured and the
    engine's own arithmetic is discouraging.
 3. **Drafting's accept rate.** `drafts: true` in every response, but no accepted/round counter is
