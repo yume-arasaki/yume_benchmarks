@@ -53,7 +53,7 @@ Two more three.js prompts came after the six: a cutaway tower and a voxel siege.
 
 ## THE RECEIPTS
 
-The suite lives in Sirius, six prompts under `prompts/bench-a*.v1.txt`. The video is 62 seconds at 1920×1080: split screen, a scroll through every pair, kinetic numbers, and whole scorecard.
+The suite lives in Sirius, six prompts under `prompts/bench-a*.v1.txt`. The video is 67 seconds at 1920×1080: split screen, the numbers on one board, and every comparison moving.
 
 Everything is on disk, unedited, failures included.
 
