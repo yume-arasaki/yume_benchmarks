@@ -1,9 +1,0 @@
-Create a single self-contained HTML file. Three.js via an importmap from jsdelivr three@0.160.1 (build/three.module.js) is the only allowed external. Everything else inline. No glTF, no image textures, no fonts, no post-processing imports.
-
-THE PIECE: a one-shot 3D battle scene that looks like a screen recording of a finished strategy game. A slow orbit camera circles the castle; the mouse can take over (drag to orbit, wheel to zoom). A monospace HUD sits top-left: SIEGE, BOULDERS, WALL, TROOPS.
-
-THE SCENE: a voxel castle under siege by trebuchets on a rocky mountainside. The besieging army's camp spreads across the valley below: hundreds of tents, siege towers, campfires, thousands of soldiers. Dense forest covers the hillsides, and a wide river winds through the valley. Each trebuchet has a swinging counterweight arm and a sling: the arm falls, the sling releases, and boulders follow ballistic arcs under gravity, smash the walls and throw falling debris. Dust clouds rise on impact.
-
-Everything is built from boxes and simple prisms in a voxel idiom — blocks, not smooth meshes. Use InstancedMesh for the soldiers, trees and tents; do not create thousands of individual meshes. The wall must visibly lose blocks where a boulder lands, and the rubble must fall.
-
-CONSTRAINTS: procedural geometry only. Flat-colour MeshStandardMaterial; no textures. ACESFilmicToneMapping, exposure ~1.1; fog matches the horizon. `const SEED` drives every random choice through a seeded PRNG — no Math.random. Clamp delta time to 1/30. Resize handler. Runs forever on requestAnimationFrame. CODE HYGIENE: declare every table and constant at the top; no undefined vars, no TODO, no truncated functions; no console errors. Output one complete, working HTML file. Do not wrap the file in markdown. Start with <!DOCTYPE html>.
