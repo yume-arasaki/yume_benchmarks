@@ -1,0 +1,16 @@
+Create a single self-contained HTML file using only HTML, CSS and JavaScript. No build tools, no external assets, nothing fetched.
+
+THE PIECE: a one-shot browser tool that looks like a screen recording of a finished expression workbench: an input line, the token stream, the AST drawn as an indented tree, the value, and an error line with a caret under the offending character. A header is always visible: `GRAMMAR · TOKENS 9 · VALUE 9 · SELFTEST 25/25`.
+
+THE SPEC: a recursive-descent parser and evaluator for this grammar —
+`expr := term (('+'|'-') term)*`
+`term := unary (('*'|'/') unary)*`
+`unary := '-' unary | primary`
+`primary := number | '(' expr ')' | func '(' expr (',' expr)* ')'`
+with `func` one of min, max (two arguments) and abs (one). Numbers are decimals; division is floating point and division by zero is an error with a position. Variables are single letters a–z, supplied as an optional object. The parser reports the first error with a character offset and a short message; it never throws out of the API.
+
+THE API (exact, headless-testable): `window.API.eval(src, vars) -> {ok:true, value}` or `{ok:false, error, at}`. Also `window.API.ast(src) -> {ok, tree}` where tree is nested `{op, args}` objects. Plain JSON in and out; the API must not touch the DOM and must work before any click.
+
+SELF-TEST: implement `window.__selftest() -> {passed, total, failures: []}`, run it on load, show the counts in the header. Cover at least twenty values, including `1+2*3=7`, `(1+2)*3=9`, `8/2-3=1`, `-(2+3)=-5`, `min(4,7)=4`, `max(4,7)=7`, `abs(0-9)=9`, `2*(3+4)-5=9`, nested calls, and `a*2` with `{a:4}` giving 8; and five syntax errors (`1+`, `(1+2`, `min(1)`, `)`, `2**3`) that return `ok:false` with a numeric offset and do not throw. Tests are run externally with other expressions too.
+
+CONSTRAINTS: deterministic — `const SEED` drives every random choice through a seeded PRNG, no Math.random. Clamp delta time to 1/30. Resize handler. CODE HYGIENE: declare every table and constant at the top; no undefined vars, no TODO, no truncated functions; no console errors. Output one complete, working HTML file. Do not wrap the file in markdown. Start with <!DOCTYPE html>.

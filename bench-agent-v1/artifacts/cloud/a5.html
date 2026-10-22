@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>GRID</title>
+<style>
+:root{--bg:#0b0e11;--panel:#11161c;--line:#243040;--ink:#d7e2ee;--dim:#7d8fa3;--sig:#39d0d8;--hot:#ff8a3d}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 "JetBrains Mono",ui-monospace,Menlo,monospace;overflow:hidden}
+header{display:flex;gap:14px;align-items:baseline;padding:10px 16px;border-bottom:1px solid var(--line)}
+header b{color:var(--sig)}#st{margin-left:auto;color:var(--dim)}#st.ok{color:#7ee787}#st.bad{color:var(--hot)}
+main{display:grid;grid-template-columns:1fr 260px;height:calc(100% - 43px);min-height:0}
+#wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:12px}
+canvas{background:var(--panel);border:1px solid var(--line);border-radius:6px;display:block;max-width:100%;max-height:100%}
+aside{border-left:1px solid var(--line);padding:14px 16px}
+h4{margin:14px 0 4px;color:var(--dim);font-size:11px;letter-spacing:.12em;font-weight:400}
+#stats div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:5px 0}
+#stats b{color:var(--sig);font-weight:500}
+button{width:100%;margin-top:14px;background:#16202b;color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:7px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--sig);color:var(--sig)}
+</style></head>
+<body>
+<header><b>GRID</b><span id="hdr">40×40 · COST — · NODES —</span><span id="st">SELFTEST —</span></header>
+<main>
+ <div id="wrap"><canvas id="cv" width="640" height="640"></canvas></div>
+ <aside>
+  <h4>RUN</h4>
+  <div id="stats">
+   <div><span>cost</span><b id="sCost">—</b></div>
+   <div><span>expanded</span><b id="sNodes">—</b></div>
+   <div><span>path</span><b id="sLen">—</b></div>
+   <div><span>start</span><b id="sS">—</b></div>
+   <div><span>goal</span><b id="sG">—</b></div>
+  </div>
+  <button id="regen">REGENERATE TERRAIN</button>
+  <div style="color:var(--dim);margin-top:16px;font-size:11px;line-height:1.6">click sets start<br>shift-click sets goal<br>terrain from SEED 7</div>
+ </aside>
+</main>
+<script>
+const W = 40, H = 40, SEED0 = 7;
+function rng(seed){ let a = (seed|0) || 1; return function(){ a |= 0; a = a + 0x6D2B79F5 | 0;
+  let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function makeGrid(seed){
+  const r = rng(seed), g = [];
+  for (let y = 0; y < H; y++){ const row = []; for (let x = 0; x < W; x++){
+    const v = r(); row.push(v < 0.12 ? 0 : 1 + Math.floor(r() * 9)); } g.push(row); }
+  for (let x = 0; x < 6; x++){ g[4][x] = 1; g[35][W-1-x] = 1; }
+  return g;
+}
+
+class Heap {
+  constructor(){ this.a = []; }
+  push(f, id){ const a = this.a; a.push([f, id]); let i = a.length - 1;
+    while (i > 0){ const p = (i-1) >> 1; if (a[p][0] <= a[i][0]) break; [a[p],a[i]] = [a[i],a[p]]; i = p; } }
+  pop(){ const a = this.a; if (!a.length) return null; const top = a[0], last = a.pop();
+    if (a.length){ a[0] = last; let i = 0;
+      for (;;){ const l = 2*i+1, r = l+1; let m = i;
+        if (l < a.length && a[l][0] < a[m][0]) m = l;
+        if (r < a.length && a[r][0] < a[m][0]) m = r;
+        if (m === i) break; [a[m],a[i]] = [a[i],a[m]]; i = m; } }
+    return top; }
+  get size(){ return this.a.length; }
+}
+
+function pathfind(grid, start, goal){
+  const h = grid.length, w = grid[0].length;
+  const okCell = (p) => p && p.length === 2 && p[0] >= 0 && p[0] < h && p[1] >= 0 && p[1] < w && grid[p[0]][p[1]] > 0;
+  if (!okCell(start) || !okCell(goal)) return { ok:false, error:"start or goal is a wall or out of bounds" };
+  const N = w * h, gs = new Float64Array(N).fill(Infinity), from = new Int32Array(N).fill(-1);
+  const closed = new Uint8Array(N);
+  const s = start[0]*w + start[1], t = goal[0]*w + goal[1];
+  const hcost = (id) => Math.abs((id/w|0) - goal[0]) + Math.abs(id % w - goal[1]);
+  const open = new Heap(); gs[s] = 0; open.push(hcost(s), s);
+  let expanded = 0;
+  while (open.size){
+    const top = open.pop(); if (!top) break;
+    const id = top[1];
+    if (closed[id]) continue;
+    closed[id] = 1; expanded++;
+    if (id === t) break;
+    const y = id / w | 0, x = id % w;
+    const nb = [[y-1,x],[y+1,x],[y,x-1],[y,x+1]];
+    for (const [ny, nx] of nb){
+      if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
+      const c = grid[ny][nx]; if (!c) continue;
+      const nid = ny*w + nx; if (closed[nid]) continue;
+      const ng = gs[id] + c;
+      if (ng < gs[nid]){ gs[nid] = ng; from[nid] = id; open.push(ng + hcost(nid), nid); }
+    }
+  }
+  if (gs[t] === Infinity) return { ok:false, error:"no path", expanded:expanded };
+  const path = []; let cur = t;
+  while (cur !== -1){ path.push([cur/w|0, cur % w]); cur = from[cur]; }
+  path.reverse();
+  return { ok:true, cost: gs[t], path: path, expanded: expanded };
+}
+
+function selftest(){
+  const f = [], t = (n, ok, got) => { if (!ok) f.push(n + " -> " + JSON.stringify(got)); };
+  const A = [[1,1,1,1,1]];
+  let r = pathfind(A, [0,0], [0,4]); t("cost 4", r.ok && r.cost === 4, r);
+  const B = [new Array(8).fill(1)];
+  r = pathfind(B, [0,0], [0,7]); t("cost 7", r.ok && r.cost === 7, r);
+  const C = [new Array(13).fill(1)];
+  r = pathfind(C, [0,0], [0,12]); t("cost 12", r.ok && r.cost === 12, r);
+  const D = [[1,0,1]];
+  r = pathfind(D, [0,0], [0,2]); t("no path", r.ok === false, r);
+  const G = [[2,3,4],[5,6,7],[8,9,1]];
+  r = pathfind(G, [0,0], [2,2]);
+  const sum = r.ok ? r.path.slice(1).reduce((s, p) => s + G[p[0]][p[1]], 0) : -1;
+  t("cost is sum", r.ok && sum === r.cost, { cost:r.cost, sum:sum });
+  const four = r.ok && r.path.every((p, i) => i === 0 || (Math.abs(p[0]-r.path[i-1][0]) + Math.abs(p[1]-r.path[i-1][1]) === 1));
+  t("4-connected", four, r.path);
+  t("start..goal", r.ok && r.path[0][0] === 0 && r.path[0][1] === 0 && r.path[r.path.length-1][0] === 2 && r.path[r.path.length-1][1] === 2, r.path);
+  const r2 = pathfind(G, [0,0], [2,2]);
+  t("deterministic", r2.ok && r2.cost === r.cost && r2.expanded === r.expanded, [r.expanded, r2.expanded]);
+  const wall = pathfind(G, [0,0], [0,0]);
+  t("start is goal", wall.ok && wall.cost === 0, wall);
+  return { passed: 9 - f.length, total: 9, failures: f };
+}
+
+window.API = { path: pathfind };
+window.__selftest = selftest;
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let grid = makeGrid(SEED0), start = [2, 2], goal = [37, 37], last = null;
+const CELL = 16;
+function paint(){
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+    const c = grid[y][x];
+    ctx.fillStyle = c === 0 ? "#1a222c" : "hsl(" + (150 - c*14) + ",28%," + (18 + c*2.2) + "%)";
+    ctx.fillRect(x*CELL, y*CELL, CELL-1, CELL-1);
+  }
+  if (last && last.ok){
+    ctx.fillStyle = "rgba(57,208,216,.22)";
+    for (const p of last.path) ctx.fillRect(p[1]*CELL, p[0]*CELL, CELL-1, CELL-1);
+    ctx.strokeStyle = "#ff8a3d"; ctx.lineWidth = 2; ctx.beginPath();
+    last.path.forEach((p, i) => { const X = p[1]*CELL + CELL/2, Y = p[0]*CELL + CELL/2;
+      i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke();
+  }
+  ctx.strokeStyle = "#39d0d8"; ctx.lineWidth = 2; ctx.strokeRect(start[1]*CELL+1, start[0]*CELL+1, CELL-3, CELL-3);
+  ctx.strokeStyle = "#ff8a3d"; ctx.strokeRect(goal[1]*CELL+1, goal[0]*CELL+1, CELL-3, CELL-3);
+  document.getElementById("hdr").textContent = W + "×" + H + " · COST " + (last && last.ok ? last.cost : "—") +
+    " · NODES " + (last && last.expanded != null ? last.expanded : "—");
+  document.getElementById("sCost").textContent = last && last.ok ? last.cost : "—";
+  document.getElementById("sNodes").textContent = last && last.expanded != null ? last.expanded : "—";
+  document.getElementById("sLen").textContent = last && last.ok ? last.path.length : "—";
+  document.getElementById("sS").textContent = start.join(",");
+  document.getElementById("sG").textContent = goal.join(",");
+}
+function run(){ last = pathfind(grid, start, goal); paint(); }
+cv.addEventListener("click", (e) => {
+  const r = cv.getBoundingClientRect(), sx = cv.width / r.width, sy = cv.height / r.height;
+  const x = Math.floor((e.clientX - r.left) * sx / CELL), y = Math.floor((e.clientY - r.top) * sy / CELL);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  if (e.shiftKey) goal = [y, x]; else start = [y, x];
+  run();
+});
+document.getElementById("regen").addEventListener("click", () => { grid = makeGrid((SEED0 * 7919 + Date.now() % 97) | 0); run(); });
+run();
+const st = selftest();
+document.getElementById("st").textContent = "SELFTEST " + st.passed + "/" + st.total;
+document.getElementById("st").className = st.passed === st.total ? "ok" : "bad";
+window.addEventListener("resize", paint);
+</script>
+</body></html>

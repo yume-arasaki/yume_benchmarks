@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>STACK-VM</title>
+<style>
+:root{--bg:#0b0e11;--panel:#11161c;--line:#243040;--ink:#d7e2ee;--dim:#7d8fa3;--sig:#39d0d8;--hot:#ff8a3d}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 "JetBrains Mono",ui-monospace,Menlo,monospace;overflow:hidden}
+header{display:flex;gap:14px;align-items:baseline;padding:10px 16px;border-bottom:1px solid var(--line);letter-spacing:.04em}
+header b{color:var(--sig);font-weight:600}
+#st{margin-left:auto;color:var(--dim)}#st.ok{color:#7ee787}#st.bad{color:var(--hot)}
+main{display:grid;grid-template-columns:1.15fr 1fr;height:calc(100% - 43px)}
+#left{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+#ed{flex:1;width:100%;background:transparent;color:var(--ink);border:0;outline:0;resize:none;padding:12px 14px;font:inherit;line-height:1.55}
+.bar{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+button{background:#16202b;color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:6px 14px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--sig);color:var(--sig)}
+button.hot{border-color:var(--hot);color:var(--hot)}
+#right{display:grid;grid-template-rows:auto auto 1fr;min-height:0}
+.blk{padding:10px 14px;border-bottom:1px solid var(--line);min-height:0}
+.blk h4{margin:0 0 6px;font-size:11px;letter-spacing:.12em;color:var(--dim);font-weight:500}
+#regs{display:flex;gap:22px;color:var(--sig)}
+#stack{display:flex;flex-wrap:wrap;gap:4px;max-height:74px;overflow:auto}
+#stack span{background:#16202b;border:1px solid var(--line);border-radius:3px;padding:1px 7px}
+#mem{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;font-size:11px;color:var(--dim);overflow:auto}
+#mem i{font-style:normal;padding:2px 4px;border-radius:3px;background:#0f151c}
+#mem i.nz{color:var(--ink);background:#17222e}
+#out{white-space:pre-wrap;color:#7ee787;overflow:auto;height:100%}
+</style></head>
+<body>
+<header><b>STACK-VM</b><span>SEED 7</span><span id="st">SELFTEST —</span></header>
+<main>
+ <section id="left">
+  <textarea id="ed" spellcheck="false"></textarea>
+  <div class="bar"><button id="run">RUN</button><button id="step">STEP</button><button id="reset" class="hot">RESET</button></div>
+ </section>
+ <section id="right">
+  <div class="blk"><h4>REGISTERS</h4><div id="regs"><span>pc 0</span><span>sp 0</span><span>steps 0</span></div></div>
+  <div class="blk"><h4>STACK</h4><div id="stack"></div></div>
+  <div class="blk"><h4>MEMORY</h4><div id="mem"></div></div>
+  <div class="blk"><h4>OUTPUT</h4><div id="out"></div></div>
+ </section>
+</main>
+<script>
+const CAP = 10000, MEMA = 256;
+const OPS = new Set(["PUSH","POP","DUP","ADD","SUB","MUL","LOAD","STORE","JNZ","OUT","HALT"]);
+const ARG = new Set(["PUSH","LOAD","STORE","JNZ"]);
+
+function assemble(src){
+  const labels = {}, code = [];
+  const lines = String(src == null ? "" : src).split("\n");
+  for (let i = 0; i < lines.length; i++){
+    let line = lines[i].replace(/;.*$/, "").trim();
+    if (!line) continue;
+    const lab = line.match(/^([A-Za-z_]\w*):\s*(.*)$/);
+    if (lab){ labels[lab[1]] = code.length; line = lab[2].trim(); if (!line) continue; }
+    const parts = line.split(/\s+/), op = parts[0].toUpperCase();
+    if (!OPS.has(op)) return { ok:false, error:"line " + (i+1) + ": unknown opcode " + parts[0] };
+    let arg = null;
+    if (ARG.has(op)){
+      if (parts.length < 2) return { ok:false, error:"line " + (i+1) + ": " + op + " needs an argument" };
+      arg = parts[1];
+      if (op !== "JNZ"){
+        const n = Number(arg);
+        if (!Number.isInteger(n)) return { ok:false, error:"line " + (i+1) + ": " + arg + " is not an integer" };
+        if (op !== "PUSH" && (n < 0 || n >= MEMA)) return { ok:false, error:"line " + (i+1) + ": address " + n + " out of range" };
+        arg = n;
+      }
+    } else if (parts.length > 1){
+      return { ok:false, error:"line " + (i+1) + ": " + op + " takes no argument" };
+    }
+    code.push({ op: op, arg: arg, line: i+1 });
+  }
+  for (const ins of code) if (ins.op === "JNZ" && !(ins.arg in labels))
+    return { ok:false, error:"line " + ins.line + ": no label " + ins.arg };
+  return { ok:true, code: code, labels: labels };
+}
+
+function machine(src){
+  const p = assemble(src);
+  if (!p.ok) return { status:"error", error:p.error, output:[], regs:{pc:0,sp:0}, steps:0, _dead:true };
+  return { status:"ok", code:p.code, labels:p.labels, pc:0, stack:[], mem:new Array(MEMA).fill(0),
+           out:[], steps:0, error:null, _dead:false };
+}
+
+function step(m){
+  if (m.status !== "ok") return false;
+  if (m.steps >= CAP){ m.status = "halted-cap"; return false; }
+  if (m.pc < 0 || m.pc >= m.code.length){ m.status = "ok"; m.pc = m.code.length; return false; }
+  const ins = m.code[m.pc], st = m.stack;
+  m.steps++;
+  let jump = -1;
+  const need = (n) => { if (st.length < n){ m.status = "error"; m.error = "line " + ins.line + ": stack underflow"; return false; } return true; };
+  switch (ins.op){
+    case "PUSH": st.push(ins.arg | 0); break;
+    case "POP": if (!need(1)) return false; st.pop(); break;
+    case "DUP": if (!need(1)) return false; st.push(st[st.length-1]); break;
+    case "ADD": if (!need(2)) return false; { const b = st.pop(), a = st.pop(); st.push((a + b) | 0); } break;
+    case "SUB": if (!need(2)) return false; { const b = st.pop(), a = st.pop(); st.push((a - b) | 0); } break;
+    case "MUL": if (!need(2)) return false; { const b = st.pop(), a = st.pop(); st.push(Math.imul(a, b)); } break;
+    case "LOAD": st.push(m.mem[ins.arg] | 0); break;
+    case "STORE": if (!need(1)) return false; m.mem[ins.arg] = st.pop() | 0; break;
+    case "JNZ": if (!need(1)) return false; if (st.pop() !== 0) jump = m.labels[ins.arg]; break;
+    case "OUT": if (!need(1)) return false; m.out.push(st.pop()); break;
+    case "HALT": m.status = "ok"; m.pc = m.code.length; return false;
+  }
+  m.pc = jump >= 0 ? jump : m.pc + 1;
+  if (m.steps >= CAP) m.status = "halted-cap";
+  return m.status === "ok";
+}
+
+function finish(m){
+  return { status: m.status === "error" && m.error && m._dead ? "error" : m.status,
+           output: m.out.slice(), regs: { pc: m.pc, sp: m.stack.length }, steps: m.steps };
+}
+
+function run(src){
+  const m = machine(src);
+  if (m._dead) return { status:"error", output:[], regs:{pc:0,sp:0}, steps:0, error:m.error };
+  let guard = 0;
+  while (m.status === "ok" && guard++ <= CAP) step(m);
+  const r = finish(m); if (m.error) r.error = m.error;
+  return r;
+}
+
+function selftest(){
+  const f = [];
+  const t = (name, ok, got) => { if (!ok) f.push(name + " -> " + JSON.stringify(got)); };
+  const fact = ["PUSH 1","STORE 0","PUSH 5","STORE 1","loop: LOAD 1","JNZ body","LOAD 0","OUT","HALT",
+    "body: LOAD 0","LOAD 1","MUL","STORE 0","LOAD 1","PUSH 1","SUB","STORE 1","LOAD 1","JNZ loop","LOAD 0","OUT","HALT"].join("\n");
+  const fib = ["PUSH 0","STORE 0","PUSH 1","STORE 1","PUSH 10","STORE 2","loop: LOAD 2","JNZ body","LOAD 0","OUT","HALT",
+    "body: LOAD 0","LOAD 1","ADD","STORE 3","LOAD 1","STORE 0","LOAD 3","STORE 1","LOAD 2","PUSH 1","SUB","STORE 2","LOAD 2","JNZ loop","LOAD 0","OUT","HALT"].join("\n");
+  const sum = ["PUSH 0","STORE 0","PUSH 10","STORE 1","loop: LOAD 1","JNZ body","LOAD 0","OUT","HALT",
+    "body: LOAD 0","LOAD 1","ADD","STORE 0","LOAD 1","PUSH 1","SUB","STORE 1","LOAD 1","JNZ loop","LOAD 0","OUT","HALT"].join("\n");
+  let r = run(fact); t("factorial 5", r.status === "ok" && r.output.length === 1 && r.output[0] === 120, r);
+  r = run(fib); t("fib 10", r.status === "ok" && r.output[0] === 55, r);
+  r = run(sum); t("sum 1..10", r.status === "ok" && r.output[0] === 55, r);
+  r = run("POP\nHALT"); t("empty pop errors", r.status === "error", r);
+  r = run("PUSH 1\nloop: DUP\nJNZ loop"); t("cap at 10000", r.status === "halted-cap" && r.steps === CAP, r);
+  r = assemble("PUSH 1\nNOPE"); t("unknown opcode", r.ok === false, r);
+  return { passed: 6 - f.length, total: 6, failures: f };
+}
+
+window.API = { run: run, assemble: assemble };
+window.__selftest = selftest;
+
+const $ = (id) => document.getElementById(id);
+const DEMO = ["; factorial of 5","PUSH 1","STORE 0","PUSH 5","STORE 1","loop: LOAD 1","JNZ body","LOAD 0","OUT","HALT",
+  "body: LOAD 0","LOAD 1","MUL","STORE 0","LOAD 1","PUSH 1","SUB","STORE 1","LOAD 1","JNZ loop","LOAD 0","OUT","HALT"].join("\n");
+let cur = null;
+function paint(){
+  if (!cur){ cur = machine($("ed").value); }
+  const m = cur;
+  $("regs").innerHTML = "<span>pc " + m.pc + "</span><span>sp " + m.stack.length + "</span><span>steps " + m.steps +
+    "</span><span>" + (m.status === "ok" ? "" : m.status) + "</span>";
+  $("stack").innerHTML = m.stack.slice(-40).map((v) => "<span>" + v + "</span>").join("");
+  $("out").textContent = m.out.join("\n");
+  if (m.error) $("out").textContent += "\n! " + m.error;
+  let h = "";
+  for (let i = 0; i < MEMA; i++) h += "<i class='" + (m.mem[i] ? "nz" : "") + "'>" + (i + ":" + m.mem[i]) + "</i>";
+  $("mem").innerHTML = h;
+}
+function reset(){ cur = machine($("ed").value); paint(); }
+
+$("ed").value = DEMO;
+$("run").onclick = () => { const r = run($("ed").value); cur = machine($("ed").value); cur.out = r.output;
+  cur.steps = r.steps; cur.status = r.status; cur.pc = r.regs.pc; cur.stack.length = r.regs.sp; paint(); };
+$("step").onclick = () => { if (!cur || cur.status !== "ok") reset(); step(cur); paint(); };
+$("reset").onclick = reset;
+
+reset();
+const t = selftest();
+$("st").textContent = "SELFTEST " + t.passed + "/" + t.total;
+$("st").className = t.passed === t.total ? "ok" : "bad";
+
+let last = 0;
+function loop(ts){ const dt = Math.min(0.033, (ts - last) / 1000 || 0); last = ts; requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.addEventListener("resize", () => {});
+</script>
+</body></html>

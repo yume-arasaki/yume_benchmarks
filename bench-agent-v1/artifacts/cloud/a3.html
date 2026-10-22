@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>QUEUE</title>
+<style>
+:root{--bg:#0b0e11;--panel:#11161c;--line:#243040;--ink:#d7e2ee;--dim:#7d8fa3;--sig:#39d0d8;--hot:#ff8a3d}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.45 "JetBrains Mono",ui-monospace,Menlo,monospace;overflow:hidden}
+header{display:flex;gap:14px;align-items:baseline;padding:10px 16px;border-bottom:1px solid var(--line)}
+header b{color:var(--sig)}#st{margin-left:auto;color:var(--dim)}#st.ok{color:#7ee787}#st.bad{color:var(--hot)}
+main{display:grid;grid-template-columns:300px 1fr;height:calc(100% - 43px);min-height:0}
+aside{border-right:1px solid var(--line);padding:14px 16px}
+label{display:block;color:var(--dim);margin:12px 0 4px;font-size:11px;letter-spacing:.08em}
+input[type=range]{width:100%;accent-color:var(--sig)}
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+#stats div{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:7px 9px}
+#stats b{display:block;color:var(--sig);font-size:16px;font-weight:500}
+#stats span{color:var(--dim);font-size:10px;letter-spacing:.08em}
+section{padding:12px 16px;min-width:0;display:grid;grid-template-rows:1fr 1fr;gap:12px}
+canvas{width:100%;height:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:block}
+h4{margin:0 0 4px;color:var(--dim);font-size:11px;letter-spacing:.12em;font-weight:400}
+</style></head>
+<body>
+<header><b>QUEUE</b><span id="hdr">λ — · μ — · L —</span><span id="st">SELFTEST —</span></header>
+<main>
+ <aside>
+  <label>ARRIVAL RATE λ</label><input id="lam" type="range" min="0.1" max="2" step="0.05" value="0.9">
+  <label>SERVICE RATE μ</label><input id="mu" type="range" min="0.2" max="2.5" step="0.05" value="1.2">
+  <label>HORIZON (min)</label><input id="hz" type="range" min="200" max="20000" step="100" value="4000">
+  <div id="stats">
+   <div><b id="sL">—</b><span>MEAN L</span></div><div><b id="sW">—</b><span>MEAN W</span></div>
+   <div><b id="sU">—</b><span>UTIL</span></div><div><b id="sA">—</b><span>ARRIVED</span></div>
+  </div>
+ </aside>
+ <section>
+  <div><h4>QUEUE LENGTH</h4><canvas id="c1"></canvas></div>
+  <div><h4>TIME IN SYSTEM</h4><canvas id="c2"></canvas></div>
+ </section>
+</main>
+<script>
+function rng(seed){ let a = (seed|0) || 1; return function(){ a |= 0; a = a + 0x6D2B79F5 | 0;
+  let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function expo(r, rate){ const u = Math.max(1e-9, r()); return -Math.log(u) / rate; }
+
+function simulate(lambda, mu, seed, horizon){
+  lambda = Number(lambda) || 0; mu = Number(mu) || 0; horizon = Math.max(1, Number(horizon) || 1000);
+  seed = seed|0;
+  if (lambda <= 0 || mu <= 0) return { arrived:0, served:0, inSystem:0, L:0, W:0, util:0, _log:[] };
+  const ra = rng(seed), rs = rng((seed ^ 0x9e3779b9) | 0);
+  let t = 0, free = 0, arrived = 0, served = 0, busy = 0, inSys = 0, sumSys = 0, sumWait = 0;
+  const log = [], waits = [];
+  for (let guard = 0; guard < 1000000; guard++){
+    t += expo(ra, lambda);
+    if (t > horizon) break;
+    arrived++;
+    const start = Math.max(t, free);
+    const dur = expo(rs, mu);
+    const end = start + dur;
+    free = end;
+    const b = Math.max(0, Math.min(end, horizon) - start);
+    busy += b;
+    sumWait += start - t;
+    const lap = Math.max(0, Math.min(end, horizon) - t);
+    sumSys += lap;
+    if (start < horizon) served++;
+    if (end > horizon) inSys++;
+    log.push({ a:+t.toFixed(3), s:+start.toFixed(3), e:+end.toFixed(3) });
+    waits.push(+(start-t).toFixed(3));
+  }
+  const L = sumSys / horizon, W = arrived ? sumSys / arrived : 0;
+  return { arrived: arrived, served: served, inSystem: Math.max(0, arrived - served),
+           L: +L.toFixed(4), W: +W.toFixed(4), util: +(busy / horizon).toFixed(4), _log: log, _waits: waits };
+}
+
+function sim(lambda, mu, seed, horizon){
+  const r = simulate(lambda, mu, seed, horizon);
+  return { arrived:r.arrived, served:r.served, inSystem:r.inSystem, L:r.L, W:r.W, util:r.util };
+}
+
+function selftest(){
+  const f = [], t = (n, ok, got) => { if (!ok) f.push(n + " -> " + JSON.stringify(got)); };
+  const a = simulate(0.9, 1.2, 7, 4000), b = simulate(0.9, 1.2, 7, 4000);
+  t("deterministic", JSON.stringify([a.L,a.W,a.util,a.arrived]) === JSON.stringify([b.L,b.W,b.util,b.arrived]), [a.L,b.L]);
+  t("conservation", a.arrived === a.served + a.inSystem, a);
+  const bad = a._log.some(x => x.s < x.a - 1e-9);
+  t("service after arrival", !bad, a._log[0]);
+  t("util in range", a.util > 0 && a.util <= 1, a.util);
+  const lw = Math.abs(a.L - 0.9 * a.W) / Math.max(1e-9, a.L);
+  t("little within 5%", lw < 0.05, {L:a.L, lambdaW:0.9*a.W, err:lw});
+  const zero = sim(0, 1.2, 7, 1000);
+  t("lambda 0 is quiet", zero.arrived === 0 && Number.isFinite(zero.L) && zero.L === 0, zero);
+  return { passed: 6 - f.length, total: 6, failures: f };
+}
+
+window.API = { sim: sim };
+window.__selftest = selftest;
+
+const $ = (id) => document.getElementById(id);
+function chart(cv, series, colour){
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const c = cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+  if (!series.length) return;
+  const max = Math.max(...series), n = series.length;
+  c.strokeStyle = colour; c.lineWidth = 1.4; c.beginPath();
+  series.forEach((v,i) => { const x = 8 + i/(n-1) * (w-16), y = h - 10 - (v/(max||1)) * (h-24);
+    i ? c.lineTo(x,y) : c.moveTo(x,y); });
+  c.stroke();
+  c.fillStyle = "#7d8fa3"; c.font = "10px ui-monospace"; c.fillText(String(max), 8, 12);
+}
+
+function draw(){
+  const lam = Number($("lam").value), mu = Number($("mu").value), hz = Number($("hz").value);
+  const r = simulate(lam, mu, 7, hz);
+  $("sL").textContent = r.L.toFixed(2); $("sW").textContent = r.W.toFixed(2);
+  $("sU").textContent = (r.util*100).toFixed(0) + "%"; $("sA").textContent = r.arrived;
+  $("hdr").textContent = "λ " + lam.toFixed(2) + " · μ " + mu.toFixed(2) + " · L " + r.L.toFixed(2);
+  // queue length sampled from the event log
+  const n = 240, q = new Array(n).fill(0);
+  r._log.forEach(x => { const i0 = Math.max(0, Math.floor(x.a / hz * n)), i1 = Math.min(n, Math.ceil(x.e / hz * n));
+    for (let i = i0; i < i1; i++) q[i]++; });
+  chart($("c1"), q, "#39d0d8");
+  const w = []; for (let i = 0; i < Math.min(240, r._waits.length); i++) w.push(r._waits[Math.floor(i * r._waits.length / 240)] || 0);
+  chart($("c2"), w, "#ff8a3d");
+}
+["lam","mu","hz"].forEach(id => $(id).addEventListener("input", draw));
+draw();
+const st = selftest();
+$("st").textContent = "SELFTEST " + st.passed + "/" + st.total;
+$("st").className = st.passed === st.total ? "ok" : "bad";
+window.addEventListener("resize", draw);
+</script>
+</body></html>

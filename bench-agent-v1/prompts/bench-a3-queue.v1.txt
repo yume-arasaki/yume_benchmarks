@@ -1,0 +1,11 @@
+Create a single self-contained HTML file using only HTML, CSS and JavaScript. No build tools, no external assets, nothing fetched.
+
+THE PIECE: a one-shot browser tool that looks like a screen recording of a finished queueing simulator: sliders for arrival rate lambda and service rate mu, a horizon in minutes, and a live chart of queue length over time with a second chart of waiting time. A header is always visible: `QUEUE · λ 0.9 · μ 1.2 · L 3.7 · SELFTEST 11/11`.
+
+THE SPEC: a single-server FIFO queue simulated as discrete events. Interarrival times are exponential with rate lambda; service times are exponential with rate mu. Use inverse transform on one seeded PRNG, and draw the two streams from separate seeds so changing mu does not change the arrivals. Track every customer's arrival, service start and departure. Compute arrived, served, inSystem at the end, mean queue length L, mean time in system W, and server utilisation over the horizon. The chart must be drawn from the event log, not from a formula.
+
+THE API (exact, headless-testable): `window.API.sim(lambda, mu, seed, horizon) -> {arrived, served, inSystem, L, W, util}`. Plain numbers in and out; the API must not touch the DOM and must work before any click.
+
+SELF-TEST: implement `window.__selftest() -> {passed, total, failures: []}`, run it on load, show the counts in the header. Cover: the same seed twice gives identical results; arrived equals served plus inSystem; no customer is served before it arrives; utilisation equals busy time over horizon; Little's law L = λW within 5 % on at least two seeds; lambda 0 gives arrived 0 without dividing by zero. Tests are run externally with other seeds and rates too.
+
+CONSTRAINTS: deterministic — `const SEED` drives every random choice through a seeded PRNG, no Math.random. Clamp delta time to 1/30. Resize handler. CODE HYGIENE: declare every table and constant at the top; no undefined vars, no TODO, no truncated functions; no console errors. Output one complete, working HTML file. Do not wrap the file in markdown. Start with <!DOCTYPE html>.

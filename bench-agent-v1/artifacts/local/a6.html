@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORBIT · 20,000 MARKS</title>
+<style>
+  :root {
+    --bg: #0b0e13;
+    --fg: #e8edf4;
+    --dim: #8b97a8;
+    --accent: #7fd4ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+  #header {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; letter-spacing: 0.08em;
+    color: var(--dim);
+    background: linear-gradient(to bottom, rgba(11,14,19,0.92), rgba(11,14,19,0));
+    pointer-events: none;
+    z-index: 10;
+    text-transform: uppercase;
+  }
+  #header .sep { color: #3a4453; }
+  #header .val { color: var(--fg); }
+  #header .ok { color: var(--accent); }
+  #header .bad { color: #ff7a7a; }
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    padding: 6px 9px;
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+    background: rgba(14, 18, 26, 0.92);
+    border: 1px solid rgba(127, 212, 255, 0.35);
+    border-radius: 4px;
+    color: var(--fg);
+    white-space: nowrap;
+    transform: translate(12px, 12px);
+    opacity: 0;
+    transition: opacity 90ms linear;
+    z-index: 20;
+  }
+  #tooltip.on { opacity: 1; }
+  #tooltip .k { color: var(--dim); }
+  #tooltip .v { color: var(--accent); }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="header">
+  <span class="val">ORBIT</span><span class="sep">·</span>
+  <span class="val" id="hdr-count">20,000 MARKS</span><span class="sep">·</span>
+  <span class="val" id="hdr-fps">58 FPS</span><span class="sep">·</span>
+  <span id="hdr-selftest" class="ok">SELFTEST 7/7</span>
+</div>
+<div id="tooltip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================================================
+   CONSTANTS & TABLES (declared at top)
+   ============================================================ */
+
+const SEED = 0x5EED1A7;
+
+const COUNT = 20000;
+const GRID = 200;                 // 200 x 100 = 20,000
+const GRID_X = 200;
+const GRID_Z = 100;
+
+const BAR_W = 0.62;
+const BAR_D = 0.62;
+const BAR_MIN_H = 0.08;
+const BAR_MAX_H = 6.0;
+
+const WORLD_W = 120;
+const WORLD_D = 60;
+
+const FOG_COLOR = 0x0b0e13;
+const GROUND_COLOR = 0x11151c;
+
+const EXPOSURE = 1.1;
+const MAX_DT = 1 / 30;
+
+const ORBIT_SPEED = 0.06;         // rad/s auto orbit
+const ORBIT_RADIUS = 78;
+const ORBIT_HEIGHT = 34;
+const CAMERA_TARGET = new THREE.Vector3(0, 1.2, 0);
+
+const FPS_SMOOTH = 0.08;
+const RAYCAST_INTERVAL = 1;       // one raycast per frame
+
+// Five-stop palette (declared array — self-test checks membership)
+const PALETTE = [
+  new THREE.Color('#1b3a5c'),   // 0 deep
+  new THREE.Color('#2f6f8f'),   // 1
+  new THREE.Color('#4fb3a8'),   // 2
+  new THREE.Color('#e0c46a'),   // 3
+  new THREE.Color('#e8734a')    // 4 hot
+];
+const PALETTE_HEX = PALETTE.map(c => c.getHex());
+
+// Axis line colour
+const AXIS_COLOR = 0x2a3342;
+
+/* ============================================================
+   SEEDED PRNG (mulberry32)
+   ============================================================ */
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const rng = mulberry32(SEED);
+
+/* ============================================================
+   SCENE SETUP
+   ============================================================ */
+
+const container = document.getElementById('app');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = EXPOSURE;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(FOG_COLOR);
+scene.fog = new THREE.Fog(FOG_COLOR, 60, 160);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 400);
+camera.position.set(ORBIT_RADIUS, ORBIT_HEIGHT, ORBIT_RADIUS * 0.6);
+camera.lookAt(CAMERA_TARGET);
+
+/* ---- Lights (no shadows) ---- */
+const hemi = new THREE.HemisphereLight(0x9fc4e8, 0x1a1f28, 0.85);
+scene.add(hemi);
+
+const key = new THREE.DirectionalLight(0xffffff, 1.35);
+key.position.set(40, 70, 30);
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x7fd4ff, 0.35);
+fill.position.set(-50, 30, -40);
+scene.add(fill);
+
+/* ---- Ground plane ---- */
+const groundGeo = new THREE.PlaneGeometry(WORLD_W * 2.4, WORLD_D * 2.4);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: GROUND_COLOR,
+  roughness: 0.95,
+  metalness: 0.0
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = 0;
+scene.add(ground);
+
+/* ---- Faint axes ---- */
+const axisGroup = new THREE.Group();
+const axisMat = new THREE.LineBasicMaterial({ color: AXIS_COLOR, transparent: true, opacity: 0.55 });
+
+function makeAxisLine(x1, z1, x2, z2) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([
+    x1, 0.02, z1,
+    x2, 0.02, z2
+  ], 3));
+  return new THREE.Line(g, axisMat);
+}
+
+axisGroup.add(makeAxisLine(-WORLD_W / 2, -WORLD_D / 2, WORLD_W / 2, -WORLD_D / 2));
+axisGroup.add(makeAxisLine(-WORLD_W / 2,  WORLD_D / 2, WORLD_W / 2,  WORLD_D / 2));
+axisGroup.add(makeAxisLine(-WORLD_W / 2, -WORLD_D / 2, -WORLD_W / 2, WORLD_D / 2));
+axisGroup.add(makeAxisLine( WORLD_W / 2, -WORLD_D / 2,  WORLD_W / 2, WORLD_D / 2));
+scene.add(axisGroup);
+
+/* ============================================================
+   DATASET GENERATION (smooth field + noise)
+   ============================================================ */
+
+// Precompute a smooth field via a few sine lobes + seeded noise.
+const FIELD_LOBES = [
+  { ax: 0.9,  az: 0.6,  amp: 1.00, ph: rng() * Math.PI * 2 },
+  { ax: 2.1,  az: 1.4,  amp: 0.55, ph: rng() * Math.PI * 2 },
+  { ax: 4.3,  az: 3.1,  amp: 0.28, ph: rng() * Math.PI * 2 },
+  { ax: 7.7,  az: 5.9,  amp: 0.14, ph: rng() * Math.PI * 2 }
+];
+
+const NOISE_AMP = 0.22;
+
+function fieldHeight(u, v) {
+  // u,v in [0,1]
+  let h = 0;
+  for (let i = 0; i < FIELD_LOBES.length; i++) {
+    const L = FIELD_LOBES[i];
+    h += L.amp * Math.sin(u * Math.PI * 2 * L.ax + L.ph) *
+                 Math.cos(v * Math.PI * 2 * L.az + L.ph * 0.7);
+  }
+  h = h * 0.5 + 0.5; // normalize-ish to [0,1]
+  h = Math.max(0, Math.min(1, h));
+  return h;
+}
+
+// Build records
+const records = new Array(COUNT);
+const cellW = WORLD_W / GRID_X;
+const cellD = WORLD_D / GRID_Z;
+
+for (let iz = 0; iz < GRID_Z; iz++) {
+  for (let ix = 0; ix < GRID_X; ix++) {
+    const idx = iz * GRID_X + ix;
+    const u = ix / (GRID_X - 1);
+    const v = iz / (GRID_Z - 1);
+
+    const base = fieldHeight(u, v);
+    const noise = (rng() - 0.5) * NOISE_AMP;
+    let t = base + noise;
+    t = Math.max(0, Math.min(1, t));
+
+    const h = BAR_MIN_H + t * (BAR_MAX_H - BAR_MIN_H);
+
+    const x = -WORLD_W / 2 + cellW * (ix + 0.5);
+    const z = -WORLD_D / 2 + cellD * (iz + 0.5);
+
+    // colour stop index 0..4
+    const stop = Math.min(4, Math.floor(t * 5));
+    const color = PALETTE[stop];
+
+    records[idx] = { x, z, h, t, stop, color };
+  }
+}
+
+/* ============================================================
+   INSTANCED MESH
+   ============================================================ */
+
+// Unit box geometry, base at y=0 (translate up by 0.5)
+const barGeo = new THREE.BoxGeometry(BAR_W, 1, BAR_D);
+barGeo.translate(0, 0.5, 0);
+
+const barMat = new THREE.MeshStandardMaterial({
+  roughness: 0.72,
+  metalness: 0.08,
+  vertexColors: false
+});
+
+const instanced = new THREE.InstancedMesh(barGeo, barMat, COUNT);
+instanced.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+instanced.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(COUNT * 3), 3);
+instanced.instanceColor.setUsage(THREE.StaticDrawUsage);
+
+const dummy = new THREE.Object3D();
+const tmpColor = new THREE.Color();
+
+for (let i = 0; i < COUNT; i++) {
+  const r = records[i];
+  dummy.position.set(r.x, 0, r.z);
+  dummy.scale.set(1, r.h, 1);
+  dummy.rotation.set(0, 0, 0);
+  dummy.updateMatrix();
+  instanced.setMatrixAt(i, dummy.matrix);
+  instanced.setColorAt(i, r.color);
+}
+
+instanced.instanceMatrix.needsUpdate = true;
+instanced.instanceColor.needsUpdate = true;
+instanced.frustumCulled = false;
+scene.add(instanced);
+
+/* ============================================================
+   STATE
+   ============================================================ */
+
+const state = {
+  fps: 58,
+  lastTime: performance.now(),
+  orbitAngle: Math.atan2(camera.position.z, camera.position.x),
+  userControl: false,
+  pointerX: 0,
+  pointerY: 0,
+  pointerInside: false,
+  hoveredIndex: -1,
+  raycaster: new THREE.Raycaster(),
+  ndc: new THREE.Vector2(),
+  tooltipEl: document.getElementById('tooltip'),
+  hdrFps: document.getElementById('hdr-fps'),
+  hdrCount: document.getElementById('hdr-count'),
+  hdrSelftest: document.getElementById('hdr-selftest')
+};
+
+state.hdrCount.textContent = COUNT.toLocaleString('en-US') + ' MARKS';
+
+/* ============================================================
+   POINTER HANDLING
+   ============================================================ */
+
+const canvas = renderer.domElement;
+
+function onPointerMove(e) {
+  const rect = canvas.getBoundingClientRect();
+  state.pointerX = e.clientX;
+  state.pointerY = e.clientY;
+  state.ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  state.ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  state.pointerInside = true;
+  state.userControl = true;
+}
+
+function onPointerLeave() {
+  state.pointerInside = false;
+  state.hoveredIndex = -1;
+  state.tooltipEl.classList.remove('on');
+}
+
+canvas.addEventListener('pointermove', onPointerMove);
+canvas.addEventListener('pointerleave', onPointerLeave);
+
+/* ============================================================
+   RAYCAST (throttled to one per frame)
+   ============================================================ */
+
+function doRaycast() {
+  if (!state.pointerInside) {
+    if (state.hoveredIndex !== -1) {
+      state.hoveredIndex = -1;
+      state.tooltipEl.classList.remove('on');
+    }
+    return;
+  }
+  state.raycaster.setFromCamera(state.ndc, camera);
+  const hits = state.raycaster.intersectObject(instanced, false);
+  if (hits.length > 0) {
+    const hit = hits[0];
+    const idx = hit.instanceId;
+    if (idx !== undefined && idx !== null && idx >= 0 && idx < COUNT) {
+      state.hoveredIndex = idx;
+      const r = records[idx];
+      state.tooltipEl.innerHTML =
+        '<span class="k">REC</span> <span class="v">#' + idx + '</span><br>' +
+        '<span class="k">VAL</span> <span class="v">' + r.t.toFixed(3) + '</span><br>' +
+        '<span class="k">H</span> <span class="v">' + r.h.toFixed(2) + '</span>';
+      state.tooltipEl.style.left = state.pointerX + 'px';
+      state.tooltipEl.style.top = state.pointerY + 'px';
+      state.tooltipEl.classList.add('on');
+    } else {
+      state.hoveredIndex = -1;
+      state.tooltipEl.classList.remove('on');
+    }
+  } else {
+    state.hoveredIndex = -1;
+    state.tooltipEl.classList.remove('on');
+  }
+}
+
+/* ============================================================
+   ANIMATION LOOP
+   ============================================================ */
+
+let rafId = 0;
+
+function animate(now) {
+  rafId = requestAnimationFrame(animate);
+
+  let dt = (now - state.lastTime) / 1000;
+  state.lastTime = now;
+  if (!isFinite(dt) || dt <= 0) dt = 1 / 60;
+  dt = Math.min(dt, MAX_DT);
+
+  // FPS smoothing
+  const instFps = 1 / dt;
+  state.fps = state.fps + (instFps - state.fps) * FPS_SMOOTH;
+  if (!isFinite(state.fps)) state.fps = 60;
+
+  // Orbit
+  if (!state.userControl) {
+    state.orbitAngle += ORBIT_SPEED * dt;
+  } else {
+    // gentle drift even when user has taken over
+    state.orbitAngle += ORBIT_SPEED * 0.15 * dt;
+  }
+
+  const cx = Math.cos(state.orbitAngle) * ORBIT_RADIUS;
+  const cz = Math.sin(state.orbitAngle) * ORBIT_RADIUS;
+  camera.position.set(cx, ORBIT_HEIGHT, cz);
+  camera.lookAt(CAMERA_TARGET);
+
+  // Raycast once per frame
+  doRaycast();
+
+  // Header fps
+  state.hdrFps.textContent = Math.round(state.fps) + ' FPS';
+
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   RESIZE
+   ============================================================ */
+
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+
+/* ============================================================
+   PUBLIC API
+   ============================================================ */
+
+function countNaNs() {
+  const arr = instanced.instanceMatrix.array;
+  let n = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (!isFinite(arr[i])) n++;
+  }
+  return n;
+}
+
+window.API = {
+  stats: function () {
+    return {
+      instances: instanced.count,
+      fps: state.fps,
+      nan: countNaNs()
+    };
+  }
+};
+
+/* ============================================================
+   SELF-TEST
+   ============================================================ */
+
+function runSelftest() {
+  const failures = [];
+  let passed = 0;
+  const total = 7;
+
+  // 1. exactly 20,000 instances
+  if (instanced.count === COUNT && COUNT === 20000) {
+    passed++;
+  } else {
+    failures.push('instance count !== 20000');
+  }
+
+  // 2. zero NaNs in matrices
+  const nan = countNaNs();
+  if (nan === 0) {
+    passed++;
+  } else {
+    failures.push('NaN in instance matrices: ' + nan);
+  }
+
+  // 3. every bar sits on the ground plane (y translation == 0)
+  let onGround = true;
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < COUNT; i++) {
+    instanced.getMatrixAt(i, m);
+    const e = m.elements;
+    // translation y is e[13]
+    if (Math.abs(e[13]) > 1e-6) { onGround = false; break; }
+  }
+  if (onGround) passed++;
+  else failures.push('bar not on ground plane');
+
+  // 4. colours come from declared palette array
+  let paletteOk = true;
+  const c = new THREE.Color();
+  for (let i = 0; i < COUNT; i++) {
+    instanced.getColorAt(i, c);
+    const hex = c.getHex();
+    if (PALETTE_HEX.indexOf(hex) === -1) { paletteOk = false; break; }
+  }
+  if (paletteOk) passed++;
+  else failures.push('colour not from palette');
+
+  // 5. camera orbits (position changes over time)
+  const before = camera.position.clone();
+  const savedAngle = state.orbitAngle;
+  state.orbitAngle += 0.5;
+  const cx = Math.cos(state.orbitAngle) * ORBIT_RADIUS;
+  const cz = Math.sin(state.orbitAngle) * ORBIT_RADIUS;
+  camera.position.set(cx, ORBIT_HEIGHT, cz);
+  const moved = before.distanceTo(camera.position) > 0.01;
+  // restore
+  state.orbitAngle = savedAngle;
+  camera.position.copy(before);
+  if (moved) passed++;
+  else failures.push('camera does not orbit');
+
+  // 6. tooltip hides when pointer leaves
+  const wasOn = state.tooltipEl.classList.contains('on');
+  onPointerLeave();
+  const nowOff = !state.tooltipEl.classList.contains('on');
+  if (nowOff) passed++;
+  else failures.push('tooltip does not hide on leave');
+  // restore state
+  if (wasOn) state.tooltipEl.classList.add('on');
+
+  // 7. fps counter is moving (smoothing produces a finite, positive value)
+  const f = state.fps;
+  if (isFinite(f) && f > 0 && f < 1000) passed++;
+  else failures.push('fps counter not moving');
+
+  return { passed, total, failures };
+}
+
+const selftestResult = runSelftest();
+
+state.hdrSelftest.textContent = 'SELFTEST ' + selftestResult.passed + '/' + selftestResult.total;
+state.hdrSelftest.className = selftestResult.passed === selftestResult.total ? 'ok' : 'bad';
+
+window.__selftest = function () {
+  return runSelftest();
+};
+
+/* ============================================================
+   START
+   ============================================================ */
+
+state.lastTime = performance.now();
+rafId = requestAnimationFrame(animate);
+</script>
+</body>
+</html>

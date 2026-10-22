@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUEUE · single-server simulator</title>
+<style>
+  :root{
+    --bg:#0b0e13; --panel:#121722; --line:#1e2635; --ink:#e6edf7;
+    --dim:#7d8aa0; --accent:#4fd1c5; --accent2:#f6ad55; --bad:#f56565;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  header{
+    flex:0 0 auto; display:flex; align-items:center; gap:14px;
+    padding:10px 16px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#141a26,#0f141d);
+    letter-spacing:.06em; white-space:nowrap; overflow:hidden;
+  }
+  header .title{color:var(--accent); font-weight:700}
+  header .sep{color:var(--dim)}
+  header .kv b{color:var(--ink); font-weight:600}
+  header .kv{color:var(--dim)}
+  header .st{margin-left:auto; color:var(--dim)}
+  header .st b{color:var(--accent)}
+  header .st.bad b{color:var(--bad)}
+  main{
+    flex:1 1 auto; display:grid; grid-template-columns:280px 1fr;
+    min-height:0;
+  }
+  aside{
+    border-right:1px solid var(--line); padding:14px; overflow:auto;
+    background:var(--panel);
+  }
+  .ctl{margin-bottom:16px}
+  .ctl label{display:flex; justify-content:space-between; color:var(--dim); margin-bottom:6px}
+  .ctl label b{color:var(--ink)}
+  input[type=range]{width:100%; accent-color:var(--accent); background:transparent}
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:18px}
+  .stat{background:#0e131c; border:1px solid var(--line); border-radius:6px; padding:8px}
+  .stat .k{color:var(--dim); font-size:11px; letter-spacing:.08em}
+  .stat .v{color:var(--ink); font-size:16px; margin-top:2px}
+  .stat .v.acc{color:var(--accent)}
+  .stat .v.acc2{color:var(--accent2)}
+  .note{color:var(--dim); font-size:11px; margin-top:16px; line-height:1.5}
+  section.charts{
+    display:grid; grid-template-rows:1fr 1fr; min-height:0; min-width:0;
+  }
+  .chartwrap{position:relative; min-height:0; border-bottom:1px solid var(--line)}
+  .chartwrap:last-child{border-bottom:none}
+  canvas{display:block; width:100%; height:100%}
+  .chartlabel{
+    position:absolute; top:8px; left:12px; color:var(--dim);
+    font-size:11px; letter-spacing:.1em; pointer-events:none;
+  }
+  .chartlabel b{color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">QUEUE</span>
+  <span class="sep">·</span>
+  <span class="kv">λ <b id="h-lambda">0.9</b></span>
+  <span class="sep">·</span>
+  <span class="kv">μ <b id="h-mu">1.2</b></span>
+  <span class="sep">·</span>
+  <span class="kv">L <b id="h-L">3.7</b></span>
+  <span class="sep">·</span>
+  <span class="st" id="h-selftest">SELFTEST <b>0/0</b></span>
+</header>
+<main>
+  <aside>
+    <div class="ctl">
+      <label>arrival rate λ <b id="v-lambda">0.9</b></label>
+      <input id="s-lambda" type="range" min="0" max="3" step="0.05" value="0.9">
+    </div>
+    <div class="ctl">
+      <label>service rate μ <b id="v-mu">1.2</b></label>
+      <input id="s-mu" type="range" min="0.05" max="3" step="0.05" value="1.2">
+    </div>
+    <div class="ctl">
+      <label>horizon (min) <b id="v-horizon">120</b></label>
+      <input id="s-horizon" type="range" min="10" max="600" step="10" value="120">
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">ARRIVED</div><div class="v" id="v-arrived">0</div></div>
+      <div class="stat"><div class="k">SERVED</div><div class="v" id="v-served">0</div></div>
+      <div class="stat"><div class="k">IN SYSTEM</div><div class="v" id="v-insystem">0</div></div>
+      <div class="stat"><div class="k">MEAN L</div><div class="v acc" id="v-L">0</div></div>
+      <div class="stat"><div class="k">MEAN W</div><div class="v acc2" id="v-W">0</div></div>
+      <div class="stat"><div class="k">UTIL</div><div class="v" id="v-util">0</div></div>
+    </div>
+    <div class="note">
+      Discrete-event FIFO single server. Exponential interarrivals
+      (rate λ) and services (rate μ), inverse transform on a seeded
+      PRNG. Arrivals and services use separate seeds, so changing μ
+      never moves the arrivals.
+    </div>
+  </aside>
+  <section class="charts">
+    <div class="chartwrap">
+      <canvas id="c-queue"></canvas>
+      <div class="chartlabel">QUEUE LENGTH <b>L(t)</b></div>
+    </div>
+    <div class="chartwrap">
+      <canvas id="c-wait"></canvas>
+      <div class="chartlabel">TIME IN SYSTEM <b>W(t)</b> per customer</div>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+
+/* ============================================================
+   CONSTANTS AND TABLES (declared at the top)
+   ============================================================ */
+const SEED = 0x5eed1234;          // master seed driving every random choice
+const SEED_ARRIVALS = 0xA11CE;    // stream seed for interarrival times
+const SEED_SERVICES = 0xB0B;      // stream seed for service times
+const DT_CLAMP = 1 / 30;          // clamp delta time for chart sampling
+const EPS = 1e-12;                // numeric guard
+const LITTLE_TOL = 0.05;          // 5% tolerance for Little's law test
+const DEFAULT_LAMBDA = 0.9;
+const DEFAULT_MU = 1.2;
+const DEFAULT_HORIZON = 120;
+
+/* ============================================================
+   SEEDED PRNG  (mulberry32) — deterministic, no Math.random
+   ============================================================ */
+function makePRNG(seed) {
+  let a = (seed >>> 0);
+  return function next() {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Inverse transform for exponential with given rate.
+   Guard rate <= 0: return Infinity (no event). */
+function expSample(rand, rate) {
+  if (!(rate > 0)) return Infinity;
+  const u = rand();
+  // u in [0,1); guard u===0
+  const uu = u <= 0 ? EPS : u;
+  return -Math.log(uu) / rate;
+}
+
+/* ============================================================
+   CORE SIMULATION  (pure, no DOM)
+   Returns {arrived, served, inSystem, L, W, util}
+   plus an internal event log used by the chart.
+   ============================================================ */
+function simulate(lambda, mu, seed, horizon) {
+  const lam = Number(lambda);
+  const m = Number(mu);
+  const H = Number(horizon);
+  const s = (seed === undefined || seed === null) ? SEED : (seed >>> 0);
+
+  // Separate streams: arrivals depend only on lambda & seed,
+  // services depend only on mu & seed. Changing mu cannot move arrivals.
+  const randArr = makePRNG((s ^ SEED_ARRIVALS) >>> 0);
+  const randSrv = makePRNG((s ^ SEED_SERVICES) >>> 0);
+
+  const arrivals = [];   // {t, id}
+  const services = [];   // {start, end, id, arrival}
+  const log = [];        // {t, q} queue length samples from events
+
+  let t = 0;
+  let id = 0;
+  let queue = [];        // FIFO of waiting customer ids
+  let serverFreeAt = 0;  // time server becomes free
+  let busyTime = 0;
+  let lastT = 0;
+  let qLen = 0;
+
+  // Pre-generate arrival times up to horizon (arrivals are independent of mu)
+  let at = 0;
+  while (true) {
+    const ia = expSample(randArr, lam);
+    if (!isFinite(ia)) break;
+    at += ia;
+    if (at > H) break;
+    arrivals.push({ t: at, id: id++ });
+  }
+
+  // Pre-generate service times for each arrival (independent of lambda)
+  const svcTimes = [];
+  for (let i = 0; i < arrivals.length; i++) {
+    svcTimes.push(expSample(randSrv, m));
+  }
+
+  // Discrete-event processing: merge arrivals and departures.
+  // We process in time order; server is FIFO single.
+  let ai = 0;             // arrival index
+  let pending = [];       // customers waiting (ids)
+  let inService = null;   // {id, arrival, start, end}
+  let servedCount = 0;
+  let totalWait = 0;      // sum of (departure - arrival)
+  let totalWaitCount = 0;
+
+  // Event loop
+  let nextArrival = ai < arrivals.length ? arrivals[ai].t : Infinity;
+  let nextDeparture = Infinity;
+
+  // We'll step through events; record queue length at each event time.
+  // Initial state at t=0: queue empty.
+  log.push({ t: 0, q: 0 });
+
+  let guard = 0;
+  const GUARD_MAX = 1e7;
+
+  while (guard++ < GUARD_MAX) {
+    // Determine next event time
+    let evT;
+    if (nextArrival <= nextDeparture) {
+      evT = nextArrival;
+    } else {
+      evT = nextDeparture;
+    }
+    if (!isFinite(evT) || evT > H) break;
+
+    // Advance clock; if server busy, accumulate busy time
+    if (inService) {
+      const busyEnd = Math.min(evT, inService.end);
+      if (busyEnd > lastT) {
+        busyTime += busyEnd - lastT;
+      }
+    }
+    lastT = evT;
+    t = evT;
+
+    // Process all arrivals at this exact time (could be multiple if ia=0, but exp>0)
+    while (ai < arrivals.length && arrivals[ai].t <= evT + EPS) {
+      const a = arrivals[ai];
+      pending.push(a.id);
+      ai++;
+      nextArrival = ai < arrivals.length ? arrivals[ai].t : Infinity;
+    }
+
+    // If server free and pending, start service
+    if (!inService && pending.length > 0) {
+      const cid = pending.shift();
+      const arr = arrivals.find(x => x.id === cid);
+      const svc = svcTimes[cid];
+      const start = evT;
+      const end = start + svc;
+      inService = { id: cid, arrival: arr.t, start, end };
+      nextDeparture = end;
+    }
+
+    // If departure at this time, finish service
+    if (inService && Math.abs(inService.end - evT) < EPS) {
+      const dep = inService.end;
+      totalWait += dep - inService.arrival;
+      totalWaitCount++;
+      servedCount++;
+      services.push({
+        id: inService.id,
+        arrival: inService.arrival,
+        start: inService.start,
+        end: dep
+      });
+      inService = null;
+      nextDeparture = Infinity;
+      // Immediately try to start next customer at same time
+      if (pending.length > 0) {
+        const cid = pending.shift();
+        const arr = arrivals.find(x => x.id === cid);
+        const svc = svcTimes[cid];
+        const start = evT;
+        const end = start + svc;
+        inService = { id: cid, arrival: arr.t, start, end };
+        nextDeparture = end;
+      }
+    }
+
+    // Record queue length (waiting + in service)
+    qLen = pending.length + (inService ? 1 : 0);
+    log.push({ t: evT, q: qLen });
+  }
+
+  // After horizon: account for remaining busy time up to H
+  if (inService) {
+    const busyEnd = Math.min(H, inService.end);
+    if (busyEnd > lastT) busyTime += busyEnd - lastT;
+    lastT = Math.max(lastT, busyEnd);
+  }
+
+  const arrived = arrivals.length;
+  const served = servedCount;
+  const inSystem = arrived - served;
+
+  // Mean queue length L: time-average of queue length over [0,H]
+  // Integrate the step function from the event log.
+  let area = 0;
+  for (let i = 0; i < log.length; i++) {
+    const cur = log[i];
+    const nxt = (i + 1 < log.length) ? log[i + 1] : null;
+    const tEnd = nxt ? nxt.t : H;
+    if (tEnd > cur.t) {
+      area += cur.q * (tEnd - cur.t);
+    }
+  }
+  // If log ends before H, extend last queue length to H
+  if (log.length > 0) {
+    const last = log[log.length - 1];
+    if (last.t < H) {
+      area += last.q * (H - last.t);
+    }
+  }
+  const L = H > 0 ? area / H : 0;
+
+  // Mean time in system W: average over served customers
+  const W = totalWaitCount > 0 ? totalWait / totalWaitCount : 0;
+
+  // Utilisation: busy time / horizon
+  const util = H > 0 ? busyTime / H : 0;
+
+  return {
+    arrived, served, inSystem, L, W, util,
+    // internal extras for charting
+    _log: log,
+    _services: services,
+    _horizon: H,
+    _lambda: lam,
+    _mu: m
+  };
+}
+
+/* ============================================================
+   PUBLIC API  (headless, no DOM)
+   ============================================================ */
+window.API = {
+  sim: function (lambda, mu, seed, horizon) {
+    const r = simulate(lambda, mu, seed, horizon);
+    return {
+      arrived: r.arrived,
+      served: r.served,
+      inSystem: r.inSystem,
+      L: r.L,
+      W: r.W,
+      util: r.util
+    };
+  }
+};
+
+/* ============================================================
+   SELF-TEST
+   ============================================================ */
+window.__selftest = function () {
+  const failures = [];
+  let passed = 0;
+  let total = 0;
+
+  function check(name, cond) {
+    total++;
+    if (cond) {
+      passed++;
+    } else {
+      failures.push(name);
+    }
+  }
+
+  function approx(a, b, tol) {
+    if (!isFinite(a) || !isFinite(b)) return false;
+    return Math.abs(a - b) <= tol;
+  }
+
+  // 1. Same seed twice gives identical results
+  try {
+    const a = window.API.sim(0.9, 1.2, 12345, 120);
+    const b = window.API.sim(0.9, 1.2, 12345, 120);
+    check("determinism: same seed identical",
+      a.arrived === b.arrived &&
+      a.served === b.served &&
+      a.inSystem === b.inSystem &&
+      a.L === b.L &&
+      a.W === b.W &&
+      a.util === b.util);
+  } catch (e) { check("determinism: same seed identical", false); }
+
+  // 2. arrived === served + inSystem
+  try {
+    const r = window.API.sim(0.9, 1.2, 777, 120);
+    check("conservation: arrived = served + inSystem",
+      r.arrived === r.served + r.inSystem);
+  } catch (e) { check("conservation: arrived = served + inSystem", false); }
+
+  // 3. No customer served before it arrives
+  try {
+    const r = simulate(0.9, 1.2, 4242, 120);
+    let ok = true;
+    for (let i = 0; i < r._services.length; i++) {
+      const s = r._services[i];
+      if (s.start < s.arrival - EPS) { ok = false; break; }
+      if (s.end < s.start - EPS) { ok = false; break; }
+    }
+    check("causality: no service before arrival", ok);
+  } catch (e) { check("causality: no service before arrival", false); }
+
+  // 4. Utilisation equals busy time over horizon
+  try {
+    const r = simulate(0.9, 1.2, 999, 120);
+    // Recompute busy time from services clipped to horizon
+    let busy = 0;
+    for (let i = 0; i < r._services.length; i++) {
+      const s = r._services[i];
+      const lo = Math.max(0, s.start);
+      const hi = Math.min(r._horizon, s.end);
+      if (hi > lo) busy += hi - lo;
+    }
+    // Note: services may overlap? No, single server, so no overlap.
+    const utilFromLog = r._horizon > 0 ? busy / r._horizon : 0;
+    check("utilisation = busy/horizon",
+      approx(r.util, utilFromLog, 1e-6));
+  } catch (e) { check("utilisation = busy/horizon", false); }
+
+  // 5. Little's law L = λW within 5% on at least two seeds
+  try {
+    let okCount = 0;
+    const seeds = [1, 2, 3, 4, 5];
+    for (let i = 0; i < seeds.length; i++) {
+      const r = window.API.sim(0.9, 1.2, seeds[i], 500);
+      if (r.W > 0 && r.L > 0) {
+        const lhs = r.L;
+        const rhs = 0.9 * r.W;
+        const rel = Math.abs(lhs - rhs) / Math.max(Math.abs(rhs), EPS);
+        if (rel <= LITTLE_TOL) okCount++;
+      }
+    }
+    check("Little's law L = λW within 5% (>=2 seeds)", okCount >= 2);
+  } catch (e) { check("Little's law L = λW within 5% (>=2 seeds)", false); }
+
+  // 6. lambda 0 gives arrived 0 without dividing by zero
+  try {
+    const r = window.API.sim(0, 1.2, 555, 120);
+    check("lambda=0: arrived=0, no NaN",
+      r.arrived === 0 &&
+      isFinite(r.L) && isFinite(r.W) && isFinite(r.util));
+  } catch (e) { check("lambda=0: arrived=0, no NaN", false); }
+
+  // 7. Changing mu does not change arrivals (separate streams)
+  try {
+    const a = window.API.sim(0.9, 1.2, 2024, 120);
+    const b = window.API.sim(0.9, 2.4, 2024, 120);
+    check("mu change does not move arrivals",
+      a.arrived === b.arrived);
+  } catch (e) { check("mu change does not move arrivals", false); }
+
+  // 8. Determinism across different seeds differs
+  try {
+    const a = window.API.sim(0.9, 1.2, 1, 120);
+    const b = window.API.sim(0.9, 1.2, 2, 120);
+    check("different seeds give different results",
+      a.arrived !== b.arrived || a.L !== b.L);
+  } catch (e) { check("different seeds give different results", false); }
+
+  // 9. All outputs are finite numbers
+  try {
+    const r = window.API.sim(0.9, 1.2, 31415, 120);
+    check("all outputs finite numbers",
+      isFinite(r.arrived) && isFinite(r.served) && isFinite(r.inSystem) &&
+      isFinite(r.L) && isFinite(r.W) && isFinite(r.util));
+  } catch (e) { check("all outputs finite numbers", false); }
+
+  // 10. served <= arrived
+  try {
+    const r = window.API.sim(0.9, 1.2, 2718, 120);
+    check("served <= arrived", r.served <= r.arrived);
+  } catch (e) { check("served <= arrived", false); }
+
+  // 11. util in [0,1]
+  try {
+    const r = window.API.sim(0.9, 1.2, 1618, 120);
+    check("util in [0,1]", r.util >= -EPS && r.util <= 1 + EPS);
+  } catch (e) { check("util in [0,1]", false); }
+
+  return { passed, total, failures };
+};
+
+/* ============================================================
+   DOM / UI
+   ============================================================ */
+const els = {
+  hLambda: document.getElementById("h-lambda"),
+  hMu: document.getElementById("h-mu"),
+  hL: document.getElementById("h-L"),
+  hSelftest: document.getElementById("h-selftest"),
+  vLambda: document.getElementById("v-lambda"),
+  vMu: document.getElementById("v-mu"),
+  vHorizon: document.getElementById("v-horizon"),
+  sLambda: document.getElementById("s-lambda"),
+  sMu: document.getElementById("s-mu"),
+  sHorizon: document.getElementById("s-horizon"),
+  vArrived: document.getElementById("v-arrived"),
+  vServed: document.getElementById("v-served"),
+  vInSystem: document.getElementById("v-insystem"),
+  vL: document.getElementById("v-L"),
+  vW: document.getElementById("v-W"),
+  vUtil: document.getElementById("v-util"),
+  cQueue: document.getElementById("c-queue"),
+  cWait: document.getElementById("c-wait")
+};
+
+let currentResult = null;
+let currentLog = null;
+let currentServices = null;
+let currentHorizon = DEFAULT_HORIZON;
+
+function fmt(n, d) {
+  if (!isFinite(n)) return "—";
+  return n.toFixed(d === undefined ? 2 : d);
+}
+
+function updateHeader(lambda, mu, L) {
+  els.hLambda.textContent = fmt(lambda, 2);
+  els.hMu.textContent = fmt(mu, 2);
+  els.hL.textContent = fmt(L, 1);
+}
+
+function updateStats(r) {
+  els.vArrived.textContent = String(r.arrived);
+  els.vServed.textContent = String(r.served);
+  els.vInSystem.textContent = String(r.inSystem);
+  els.vL.textContent = fmt(r.L, 2);
+  els.vW.textContent = fmt(r.W, 2);
+  els.vUtil.textContent = fmt(r.util, 3);
+}
+
+/* ---------- Canvas drawing ---------- */
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, Math.floor(rect.width));
+  const h = Math.max(1, Math.floor(rect.height));
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+function drawQueueChart() {
+  const { ctx, w, h } = setupCanvas(els.cQueue);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 44, padR = 16, padT = 30, padB = 24;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  if (plotW <= 0 || plotH <= 0) return;
+
+  const log = currentLog || [];
+  const H = currentHorizon || 1;
+
+  // Find max queue
+  let maxQ = 1;
+  for (let i = 0; i < log.length; i++) {
+    if (log[i].q > maxQ) maxQ = log[i].q;
+  }
+  maxQ = Math.max(1, maxQ);
+
+  // Axes
+  ctx.strokeStyle = "#1e2635";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // Grid lines
+  ctx.strokeStyle = "#161d29";
+  const gridN = 4;
+  for (let i = 0; i <= gridN; i++) {
+    const y = padT + (plotH * i) / gridN;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+  }
+
+  // Labels
+  ctx.fillStyle = "#7d8aa0";
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= gridN; i++) {
+    const val = maxQ * (1 - i / gridN);
+    const y = padT + (plotH * i) / gridN;
+    ctx.fillText(val.toFixed(1), padL - 6, y);
+  }
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("0", padL, padT + plotH + 6);
+  ctx.fillText(String(Math.round(H)), padL + plotW, padT + plotH + 6);
+
+  // Step function from event log
+  if (log.length > 0) {
+    ctx.strokeStyle = "#4fd1c5";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < log.length; i++) {
+      const p = log[i];
+      const x = padL + (p.t / H) * plotW;
+      const y = padT + plotH - (p.q / maxQ) * plotH;
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+      // horizontal segment to next event
+      if (i + 1 < log.length) {
+        const nx = padL + (log[i + 1].t / H) * plotW;
+        ctx.lineTo(nx, y);
+      }
+    }
+    // extend to horizon
+    if (log.length > 0) {
+      const last = log[log.length - 1];
+      const xEnd = padL + plotW;
+      const yLast = padT + plotH - (last.q / maxQ) * plotH;
+      ctx.lineTo(xEnd, yLast);
+    }
+    ctx.stroke();
+
+    // Fill under curve lightly
+    ctx.fillStyle = "rgba(79,209,197,0.08)";
+    ctx.beginPath();
+    let first = true;
+    for (let i = 0; i < log.length; i++) {
+      const p = log[i];
+      const x = padL + (p.t / H) * plotW;
+      const y = padT + plotH - (p.q / maxQ) * plotH;
+      if (first) { ctx.moveTo(x, padT + plotH); ctx.lineTo(x, y); first = false; }
+      else { ctx.lineTo(x, y); }
+      if (i + 1 < log.length) {
+        const nx = padL + (log[i + 1].t / H) * plotW;
+        ctx.lineTo(nx, y);
+      }
+    }
+    if (log.length > 0) {
+      const last = log[log.length - 1];
+      const xEnd = padL + plotW;
+      const yLast = padT + plotH - (last.q / maxQ) * plotH;
+      ctx.lineTo(xEnd, yLast);
+      ctx.lineTo(xEnd, padT + plotH);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawWaitChart() {
+  const { ctx, w, h } = setupCanvas(els.cWait);
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 44, padR = 16, padT = 30, padB = 24;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  if (plotW <= 0 || plotH <= 0) return;
+
+  const services = currentServices || [];
+  const H = currentHorizon || 1;
+
+  // Compute waiting times (time in system = departure - arrival)
+  const waits = [];
+  for (let i = 0; i < services.length; i++) {
+    waits.push(services[i].end - services[i].arrival);
+  }
+
+  let maxW = 1;
+  for (let i = 0; i < waits.length; i++) {
+    if (waits[i] > maxW) maxW = waits[i];
+  }
+  maxW = Math.max(1, maxW);
+
+  // Axes
+  ctx.strokeStyle = "#1e2635";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // Grid
+  ctx.strokeStyle = "#161d29";
+  const gridN = 4;
+  for (let i = 0; i <= gridN; i++) {
+    const y = padT + (plotH * i) / gridN;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+  }
+
+  // Labels
+  ctx.fillStyle = "#7d8aa0";
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= gridN; i++) {
+    const val = maxW * (1 - i / gridN);
+    const y = padT + (plotH * i) / gridN;
+    ctx.fillText(val.toFixed(1), padL - 6, y);
+  }
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("0", padL, padT + plotH + 6);
+  ctx.fillText(String(Math.round(H)), padL + plotW, padT + plotH + 6);
+
+  // Scatter of waiting times vs arrival time
+  if (waits.length > 0) {
+    ctx.fillStyle = "#f6ad55";
+    for (let i = 0; i < services.length; i++) {
+      const s = services[i];
+      const x = padL + (s.arrival / H) * plotW;
+      const y = padT + plotH - (waits[i] / maxW) * plotH;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Mean line
+    let sum = 0;
+    for (let i = 0; i < waits.length; i++) sum += waits[i];
+    const mean = sum / waits.length;
+    const yMean = padT + plotH - (mean / maxW) * plotH;
+    ctx.strokeStyle = "rgba(246,173,85,0.5)";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padL, yMean);
+    ctx.lineTo(padL + plotW, yMean);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* ---------- Recompute and render ---------- */
+function recompute() {
+  const lambda = parseFloat(els.sLambda.value);
+  const mu = parseFloat(els.sMu.value);
+  const horizon = parseFloat(els.sHorizon.value);
+
+  els.vLambda.textContent = fmt(lambda, 2);
+  els.vMu.textContent = fmt(mu, 2);
+  els.vHorizon.textContent = String(Math.round(horizon));
+
+  const r = simulate(lambda, mu, SEED, horizon);
+  currentResult = r;
+  currentLog = r._log;
+  currentServices = r._services;
+  currentHorizon = horizon;
+
+  updateHeader(lambda, mu, r.L);
+  updateStats(r);
+  drawQueueChart();
+  drawWaitChart();
+}
+
+/* ---------- Self-test display ---------- */
+function runSelftest() {
+  let res;
+  try {
+    res = window.__selftest();
+  } catch (e) {
+    res = { passed: 0, total: 0, failures: ["exception: " + e.message] };
+  }
+  const b = els.hSelftest.querySelector("b");
+  b.textContent = res.passed + "/" + res.total;
+  if (res.passed === res.total) {
+    els.hSelftest.classList.remove("bad");
+  } else {
+    els.hSelftest.classList.add("bad");
+  }
+  return res;
+}
+
+/* ---------- Resize handler ---------- */
+let resizeTimer = null;
+function onResize() {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function () {
+    drawQueueChart();
+    drawWaitChart();
+  }, 60);
+}
+
+/* ---------- Init ---------- */
+function init() {
+  els.sLambda.value = String(DEFAULT_LAMBDA);
+  els.sMu.value = String(DEFAULT_MU);
+  els.sHorizon.value = String(DEFAULT_HORIZON);
+
+  els.sLambda.addEventListener("input", recompute);
+  els.sMu.addEventListener("input", recompute);
+  els.sHorizon.addEventListener("input", recompute);
+
+  window.addEventListener("resize", onResize);
+
+  runSelftest();
+  recompute();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>

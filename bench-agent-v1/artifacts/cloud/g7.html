@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Tower cutaway</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0e11}
+canvas{display:block}
+#hud{position:fixed;top:14px;left:16px;z-index:2;color:#d7e2ee;font:12px/1.7 "JetBrains Mono",ui-monospace,Menlo,monospace;
+ letter-spacing:.06em;background:#0b0e11b8;border:1px solid #243040;border-radius:6px;padding:8px 11px;pointer-events:none}
+#hud b{color:#39d0d8;font-weight:600}
+#hud i{color:#7d8fa3;font-style:normal}
+</style></head>
+<body>
+<div id="hud"><b>TOWER</b> · <span id="clock">08:00</span><br>
+<i>RESIDENTS</i> <span id="pop">0</span> · <i>LIFTS</i> <span id="lifts">0</span> · <i>TAXIS</i> <span id="taxis">0</span></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from "three";
+
+const SEED = 7;
+function rng(s){ let a=(s|0)||1; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const rand = rng(SEED);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.shadowMap.enabled = false;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const SKY_DAY = new THREE.Color("#bcd9ee"), SKY_NIGHT = new THREE.Color("#0b1622");
+scene.background = SKY_DAY.clone();
+scene.fog = new THREE.Fog(SKY_DAY.clone(), 55, 120);
+
+const camera = new THREE.PerspectiveCamera(34, innerWidth/innerHeight, 0.5, 300);
+camera.position.set(0, 13.6, 58);
+camera.lookAt(0, 12.6, 0);
+
+const hemi = new THREE.HemisphereLight("#dff0ff", "#1a1f26", 1.05); scene.add(hemi);
+const key = new THREE.DirectionalLight("#fff4e6", 1.4); key.position.set(-18, 34, 24); scene.add(key);
+const fill = new THREE.DirectionalLight("#cfe4f2", 0.85); fill.position.set(8, 12, 40); scene.add(fill);
+scene.add(new THREE.AmbientLight("#8fa3b0", 0.55));
+
+const mat = (c, r=0.85) => new THREE.MeshStandardMaterial({ color:c, roughness:r, metalness:0.05 });
+const box = (w,h,d,c,x,y,z) => { const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(c));
+  m.position.set(x,y,z); scene.add(m); return m; };
+
+// ---------------------------------------------------------------- the shell
+const W = 24, D = 6, FLOORS = [1.6, 5.8, 10.0, 14.2, 18.4, 22.6];
+const shell = [];
+shell.push(box(W, 0.5, D, "#2a333d", 0, 0.25, 0));          // street slab
+for (const y of FLOORS) box(W, 0.32, D, "#3a4650", 0, y, 0);   // floor slabs
+box(0.5, 27.4, D, "#39434d", -W/2, 13.6, 0);                   // left wall
+box(0.5, 27.4, D, "#39434d",  W/2, 13.6, 0);                   // right wall
+box(W, 0.6, D, "#2f3942", 0, 27.2, 0);                          // roof
+box(W, 27.0, 0.4, "#3b4854", 0, 13.6, -D/2);                    // back wall
+
+// street
+box(56, 0.3, 9, "#23282e", 0, -0.15, 9.5);
+box(56, 0.02, 0.3, "#c9c27a", 0, 0.01, 9.5);
+for (let i=0;i<10;i++) box(0.16, 0.02, 1.4, "#cfd6da", -22 + i*5, 0.02, 6.2);
+
+// ---------------------------------------------------------------- lobby (floor 0)
+const lobbyY = FLOORS[0];
+box(3.2, 1.0, 1.2, "#7c5a3a", -5.5, lobbyY + 0.8, 1.2);      // reception desk
+box(1.8, 1.6, 1.0, "#2f5d63", -5.5, lobbyY + 2.1, 1.6);      // back cabinet
+const doorPivot = new THREE.Group(); doorPivot.position.set(5.4, lobbyY + 1.35, 1.4); scene.add(doorPivot);
+for (let i=0;i<4;i++){ const p=new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.5, 0.08), mat("#9fd7de",0.4));
+  p.position.set(Math.cos(i*Math.PI/2)*0.85, 0, Math.sin(i*Math.PI/2)*0.85); p.rotation.y = -i*Math.PI/2; doorPivot.add(p); }
+const doorRing = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.05, 8, 40), mat("#c9d6de"));
+doorRing.rotation.x = Math.PI/2; doorRing.position.set(5.4, lobbyY + 2.62, 1.4); scene.add(doorRing);
+
+// ---------------------------------------------------------------- mall (floor 1)
+const mallY = FLOORS[1];
+const shops = [["#c45a4a", -8], ["#4a8fc4", 0], ["#c4a34a", 8]];
+for (const [c,x] of shops){
+  box(6.2, 2.5, 0.4, c, x, mallY + 1.55, -2.4);
+  box(5.4, 1.3, 0.3, "#141a20", x, mallY + 1.5, -2.15);
+  box(6.2, 0.16, 1.6, "#4a555f", x, mallY + 2.85, -1.7);
+}
+for (const x of [-3.4, 3.4]){
+  const esc = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.3, 3.2), mat("#6d7a85"));
+  esc.position.set(x, mallY + 1.6, 1.1); esc.rotation.x = -0.42; scene.add(esc);
+  for (let i=0;i<6;i++) box(1.9, 0.08, 0.28, "#8a97a2", x, mallY + 0.7 + i*0.42, 2.2 - i*0.42);
+}
+for (const x of [-9, -6, 7.5]){ box(1.5, 0.12, 1.1, "#b9a07a", x, mallY + 1.0, 1.9);
+  box(0.1, 0.9, 0.1, "#6d7a85", x-0.6, mallY + 0.55, 2.3); box(0.1, 0.9, 0.1, "#6d7a85", x+0.6, mallY + 0.55, 2.3);
+  box(2.0, 0.1, 1.5, "#3f6f6a", x, mallY + 2.3, 1.9); }
+
+// ---------------------------------------------------------------- residences (2, 3)
+for (const y of [FLOORS[2], FLOORS[3]]){
+  box(4.2, 0.7, 2.6, "#6f5b8a", -6.5, y + 0.75, 0.6);        // bed
+  box(1.4, 0.4, 1.0, "#e8e4dc", -7.7, y + 1.2, 0.6);          // pillow
+  box(2.8, 1.1, 1.3, "#4f6f5a", 3.2, y + 0.9, 1.2);           // sofa
+  box(2.8, 0.7, 0.3, "#44614e", 3.2, y + 1.7, 0.8);
+  box(1.2, 1.2, 0.6, "#2b333b", 8.2, y + 1.2, -2.2);          // tv
+  box(2.4, 0.1, 1.2, "#7c5a3a", 7.8, y + 0.75, 1.4);          // coffee table
+}
+// ---------------------------------------------------------------- offices (4)
+for (let i=0;i<6;i++){
+  const x = -8.4 + i*3.4;
+  box(2.2, 0.14, 1.2, "#b9a07a", x, FLOORS[4] + 1.2, 0.4);
+  box(0.12, 1.1, 0.12, "#5d6a74", x-0.9, FLOORS[4] + 0.75, 0.4);
+  box(0.12, 1.1, 0.12, "#5d6a74", x+0.9, FLOORS[4] + 0.75, 0.4);
+  box(0.9, 0.6, 0.08, "#182028", x, FLOORS[4] + 1.65, 0.1);
+  box(0.9, 0.06, 0.4, "#2a333d", x, FLOORS[4] + 1.32, 0.1);
+  box(1.0, 0.5, 0.9, "#37506b", x + 1.4, FLOORS[4] + 0.9, 0.6);
+}
+// ---------------------------------------------------------------- penthouse (5)
+const glass = box(10, 2.6, 0.2, "#7fb6c4", -3, FLOORS[5] + 1.5, -2.6); glass.material.transparent = true; glass.material.opacity = 0.35;
+box(4.6, 0.9, 2.2, "#e6e2d8", 2.5, FLOORS[5] + 1.0, 0.8);   // long sofa
+box(1.6, 1.2, 1.6, "#39553f", 8.6, FLOORS[5] + 1.2, 1.4);   // plant box
+box(0.2, 1.6, 0.2, "#3a2a1c", 8.6, FLOORS[5] + 2.5, 1.4);
+const tree = new THREE.Mesh(new THREE.IcosahedronGeometry(1.1, 0), mat("#4f8a4a"));
+tree.position.set(8.6, FLOORS[5] + 3.4, 1.4); scene.add(tree);
+box(3.4, 0.8, 1.4, "#2f5d63", -7.5, FLOORS[5] + 0.9, 1.2);  // bar
+
+// ---------------------------------------------------------------- stairwell
+for (let i=0;i<26;i++){
+  const y = 0.5 + i*0.95;
+  const s = box(1.5, 0.14, 0.55, "#6d7a85", -W/2 + 1.2, y, -1.4 + (i%2 ? 0.3 : -0.3));
+  s.rotation.y = 0.0;
+}
+// ---------------------------------------------------------------- lifts
+const SHAFTS = [-8.8, 8.8];
+const cars = SHAFTS.map((x, i) => {
+  const g = new THREE.Group(); g.position.set(x, FLOORS[0] + 0.65, 1.9); scene.add(g);
+  const c = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.6, 2.0), mat("#8fa3b0", 0.6)); g.add(c);
+  const glassFront = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.2, 0.06), mat("#cfe6ee", 0.3));
+  glassFront.position.set(0, 0, 1.02); glassFront.material.transparent = true; glassFront.material.opacity = 0.5; g.add(glassFront);
+  return { g, shaft:i, floor:0, target:0, dir:1, wait:2.5, riders:[] };
+});
+for (const x of SHAFTS){
+  box(0.12, 24, 0.12, "#4a555f", x - 1.05, 12.4, 2.95);
+  box(0.12, 24, 0.12, "#4a555f", x + 1.05, 12.4, 2.95);
+}
+
+// ---------------------------------------------------------------- people
+const PEOPLE = 22, people = [];
+const skin = ["#e0b48c", "#c99a6e", "#8c6444", "#f0c9a6"];
+for (let i=0;i<PEOPLE;i++){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.42, 3, 6), mat(["#c45a4a","#4a8fc4","#5a8a5a","#c4a34a","#8a6aa8"][i%5]));
+  body.position.y = 0.55; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), mat(skin[i%skin.length])); head.position.y = 0.95; g.add(head);
+  const waiting = i < 8, sx = SHAFTS[i%2] + ((i%2) ? -1.4 : 1.4);
+  g.position.set(waiting ? sx : -2 + rand()*4, FLOORS[0] + 0.1, waiting ? 2.8 : 2.4);
+  scene.add(g);
+  people.push({ g, state: waiting ? "wait" : "walk", floor:0, target:1 + (i%4), x: g.position.x, wait:0, car:null, timer: waiting ? -8 : 1 + rand()*4 });
+}
+
+// ---------------------------------------------------------------- street life
+const taxis = [];
+for (let i=0;i<3;i++){
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.9, 1.5), mat(i===1 ? "#3f7f8a" : "#d4a72c")); b.position.y = 0.45; g.add(b);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.3), mat("#2b333b")); roof.position.set(-0.2, 1.05, 0); g.add(roof);
+  g.position.set(-24 + i*17, 0, 9.6); scene.add(g);
+  taxis.push({ g, speed: 4.5 + i*1.7 });
+}
+const walkers = [];
+for (let i=0;i<7;i++){
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.36, 3, 6), mat(["#6a7a8a","#8a6a6a","#5a7a6a"][i%3]));
+  b.position.y = 0.5; g.add(b);
+  g.position.set(-22 + i*6, 0, 5.4 + (i%2)*0.9); scene.add(g);
+  walkers.push({ g, dir: i%2 ? 1 : -1, speed: 0.8 + (i%3)*0.35 });
+}
+
+// ---------------------------------------------------------------- night windows
+const windowGlow = [];
+for (let f=0; f<5; f++){
+  for (let i=0;i<7;i++){
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.3),
+      new THREE.MeshBasicMaterial({ color:"#ffd9a0", transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }));
+    m.position.set(-10 + i*3.2, FLOORS[f] + 1.9, D/2 - 0.22);
+    scene.add(m); windowGlow.push(m);
+  }
+}
+const streetGlow = new THREE.Mesh(new THREE.PlaneGeometry(50, 4),
+  new THREE.MeshBasicMaterial({ color:"#ffb86b", transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }));
+streetGlow.position.set(0, 0.9, 6.6); scene.add(streetGlow);
+
+// ---------------------------------------------------------------- loop
+const $ = (id) => document.getElementById(id);
+const clock = new THREE.Clock();
+let t0 = 0, popCount = 0;
+
+function animate(){
+  const dt = Math.min(1/30, clock.getDelta());
+  t0 += dt;
+  const day = (t0 % 90) / 90;
+  const night = Math.max(0, Math.min(1, (day - 0.62) / 0.18));
+  scene.background.copy(SKY_DAY).lerp(SKY_NIGHT, night);
+  scene.fog.color.copy(scene.background);
+  hemi.intensity = 1.05 - night * 0.7;
+  key.intensity = 1.4 - night * 1.1;
+  for (const m of windowGlow) m.material.opacity = 0.0 + night * (0.18 + 0.2 * Math.abs(Math.sin(m.position.x)));
+  streetGlow.material.opacity = night * 0.16;
+
+  // revolving door
+  doorPivot.rotation.y += dt * 0.9;
+
+  // lifts
+  for (const car of cars){
+    if (car.wait > 0){ car.wait -= dt; }
+    else {
+      const y = FLOORS[car.floor] + 0.65, ty = FLOORS[car.target] + 0.65;
+      car.g.position.y += Math.sign(ty - y) * Math.min(Math.abs(ty - y), dt * 2.2);
+      if (Math.abs(car.g.position.y - ty) < 0.02){
+        car.floor = car.target;
+        car.riders = car.riders.filter((p) => {
+          if (p.target === car.floor){ p.state = "walk"; p.floor = car.floor; p.g.position.set(car.g.position.x, FLOORS[car.floor] + 0.1, 2.6); p.timer = 2.5; return false; }
+          return true;
+        });
+        for (const p of people){
+          if (car.riders.length >= 4) break;
+          if (p.state === "wait" && p.floor === car.floor){
+            p.state = "ride"; p.car = car; car.riders.push(p);
+          }
+        }
+        car.wait = 1.6;
+        if (car.target === 5) car.target = 0; else if (car.target === 0) car.target = 3; else car.target = car.target > 2 ? 0 : 5;
+      }
+    }
+  }
+
+  // people
+  for (const p of people){
+    if (p.state === "walk"){
+      p.timer -= dt;
+      const shaftX = SHAFTS[p.target % 2] + (p.target % 2 ? -1.4 : 1.4);
+      const dx = shaftX - p.g.position.x;
+      p.g.position.x += Math.sign(dx) * Math.min(Math.abs(dx), dt * 1.6);
+      if (Math.abs(dx) < 0.1){ p.state = "wait"; p.floor = 0; }
+      if (p.timer < -6){ p.g.position.set(-2 + rand()*4, FLOORS[0] + 0.1, 2.4); p.target = 1 + Math.floor(rand()*4); p.timer = 2; }
+    } else if (p.state === "ride"){
+      p.g.position.set(p.car.g.position.x, p.car.g.position.y + 0.05, p.car.g.position.z + 0.25);
+    } else if (p.state === "wait"){
+      p.g.position.y = FLOORS[0] + 0.1;
+      p.timer -= dt;
+      if (p.timer < -12){ p.state = "walk"; p.timer = 2; p.target = 1 + Math.floor(rand()*4); }
+    }
+  }
+  popCount = people.filter((p) => p.state !== "walk").length;
+
+  // taxis + walkers
+  for (const tx of taxis){ tx.g.position.x += tx.speed * dt; if (tx.g.position.x > 28) tx.g.position.x = -30; }
+  for (const w of walkers){ w.g.position.x += w.dir * w.speed * dt;
+    if (w.g.position.x > 26) w.g.position.x = -26; if (w.g.position.x < -26) w.g.position.x = 26; }
+
+  const hh = Math.floor(8 + day * 14) % 24, mm = Math.floor((day * 14 % 1) * 60);
+  $("clock").textContent = String(hh).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
+  $("pop").textContent = popCount;
+  $("lifts").textContent = cars.filter((c)=>c.wait>0).length;
+  $("taxis").textContent = taxis.length;
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+animate();
+</script>
+</body></html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>GRAMMAR</title>
+<style>
+:root{--bg:#0b0e11;--panel:#11161c;--line:#243040;--ink:#d7e2ee;--dim:#7d8fa3;--sig:#39d0d8;--hot:#ff8a3d}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:13px/1.5 "JetBrains Mono",ui-monospace,Menlo,monospace;overflow:hidden}
+header{display:flex;gap:14px;align-items:baseline;padding:10px 16px;border-bottom:1px solid var(--line)}
+header b{color:var(--sig)}#st{margin-left:auto;color:var(--dim)}#st.ok{color:#7ee787}#st.bad{color:var(--hot)}
+main{display:grid;grid-template-columns:1fr 1fr;height:calc(100% - 43px);min-height:0}
+section{padding:14px 16px;min-width:0;display:flex;flex-direction:column;gap:10px}
+#left{border-right:1px solid var(--line)}
+input[type=text]{width:100%;background:#0f151c;color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:9px 11px;font:inherit;font-size:15px;outline:none}
+input[type=text]:focus{border-color:var(--sig)}
+h4{margin:0;color:var(--dim);font-size:11px;letter-spacing:.12em;font-weight:400}
+#toks{display:flex;flex-wrap:wrap;gap:4px}
+#toks span{border:1px solid var(--line);border-radius:3px;padding:1px 6px;font-size:11px;color:var(--dim)}
+#toks span.op{color:var(--sig)}
+#val{font-size:30px;color:#7ee787}
+#err{color:var(--hot);white-space:pre;font-size:12px}
+#tree{white-space:pre;color:var(--ink);overflow:auto;flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12px}
+.dim{color:var(--dim)}
+</style></head>
+<body>
+<header><b>GRAMMAR</b><span id="hdr">TOKENS — · VALUE —</span><span id="st">SELFTEST —</span></header>
+<main>
+ <section id="left">
+  <h4>EXPRESSION</h4>
+  <input id="src" type="text" spellcheck="false" value="2*(3+4)-5">
+  <h4>TOKENS</h4><div id="toks"></div>
+  <h4>VALUE</h4><div id="val">—</div><div id="err"></div>
+  <div class="dim" style="margin-top:auto">a–z are variables · min(a,b) · max(a,b) · abs(a)<br>precedence: unary − &gt; × ÷ &gt; + − · left associative</div>
+ </section>
+ <section>
+  <h4>AST</h4><div id="tree"></div>
+ </section>
+</main>
+<script>
+const FNS = { min:2, max:2, abs:1 };
+
+function lex(src){
+  const t = []; let i = 0;
+  while (i < src.length){
+    const c = src[i];
+    if (/\s/.test(c)){ i++; continue; }
+    if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(src[i+1] || ""))){
+      let j = i; while (j < src.length && /[0-9.]/.test(src[j])) j++;
+      const s = src.slice(i, j), v = Number(s);
+      if (!Number.isFinite(v)) return { ok:false, error:"bad number", at:i };
+      t.push({ k:"num", v:v, at:i }); i = j; continue;
+    }
+    if (/[A-Za-z_]/.test(c)){
+      let j = i; while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) j++;
+      t.push({ k:"id", v:src.slice(i,j), at:i }); i = j; continue;
+    }
+    if ("+-*/(),".includes(c)){ t.push({ k:c, at:i }); i++; continue; }
+    return { ok:false, error:"unexpected " + c, at:i };
+  }
+  t.push({ k:"eof", at:src.length });
+  return { ok:true, tokens:t };
+}
+
+function parse(src){
+  const L = lex(src); if (!L.ok) return L;
+  const T = L.tokens; let p = 0;
+  const peek = () => T[p];
+  const eat = (k) => { if (T[p].k !== k) throw { msg:"expected " + k, at:T[p].at }; return T[p++]; };
+  function expr(){ let n = term(); while (peek().k === "+" || peek().k === "-"){ const op = T[p++].k; n = { t:"op", op:op, args:[n, term()] }; } return n; }
+  function term(){ let n = unary(); while (peek().k === "*" || peek().k === "/"){ const op = T[p++].k; n = { t:"op", op:op, args:[n, unary()] }; } return n; }
+  function unary(){ if (peek().k === "-"){ p++; return { t:"op", op:"neg", args:[unary()] }; } return primary(); }
+  function primary(){
+    const tok = peek();
+    if (tok.k === "num"){ p++; return { t:"num", v:tok.v }; }
+    if (tok.k === "id"){
+      p++;
+      if (peek().k === "("){
+        p++; const args = [];
+        if (peek().k !== ")"){ args.push(expr()); while (peek().k === ","){ p++; args.push(expr()); } }
+        eat(")");
+        if (!(tok.v in FNS)) throw { msg:"unknown function " + tok.v, at:tok.at };
+        if (args.length !== FNS[tok.v]) throw { msg:tok.v + " takes " + FNS[tok.v] + " argument(s)", at:tok.at };
+        return { t:"call", name:tok.v, args:args };
+      }
+      return { t:"var", name:tok.v, at:tok.at };
+    }
+    if (tok.k === "("){ p++; const e = expr(); eat(")"); return e; }
+    if (tok.k === "eof") throw { msg:"unexpected end", at:tok.at };
+    throw { msg:"unexpected " + tok.k, at:tok.at };
+  }
+  try {
+    const tree = expr();
+    if (peek().k !== "eof") throw { msg:"unexpected " + peek().k, at:peek().at };
+    return { ok:true, tree:tree };
+  } catch (e){ return { ok:false, error:e.msg || "parse error", at: e.at == null ? 0 : e.at }; }
+}
+
+function ev(n, vars){
+  switch (n.t){
+    case "num": return n.v;
+    case "var":
+      if (!(n.name in vars)) throw { msg:"unknown variable " + n.name, at:n.at };
+      return vars[n.name];
+    case "op": {
+      if (n.op === "neg") return -ev(n.args[0], vars);
+      const a = ev(n.args[0], vars), b = ev(n.args[1], vars);
+      if (n.op === "+") return a + b;
+      if (n.op === "-") return a - b;
+      if (n.op === "*") return a * b;
+      if (n.op === "/"){ if (b === 0) throw { msg:"division by zero", at:0 }; return a / b; }
+      throw { msg:"bad op", at:0 };
+    }
+    case "call": {
+      const a = n.args.map((x) => ev(x, vars));
+      if (n.name === "min") return Math.min(a[0], a[1]);
+      if (n.name === "max") return Math.max(a[0], a[1]);
+      if (n.name === "abs") return Math.abs(a[0]);
+      throw { msg:"bad call", at:0 };
+    }
+  }
+  throw { msg:"bad node", at:0 };
+}
+
+function evalExpr(src, vars){
+  const ast = parse(src);
+  if (!ast.ok) return { ok:false, error:ast.error, at:ast.at };
+  try { return { ok:true, value: ev(ast.tree, vars || {}) }; }
+  catch (e){ return { ok:false, error:e.msg || "eval error", at: e.at == null ? 0 : e.at }; }
+}
+
+function astOf(src){ const r = parse(src); return r.ok ? { ok:true, tree:r.tree } : { ok:false, error:r.error, at:r.at }; }
+
+function selftest(){
+  const f = [], t = (n, src, want, vars) => {
+    const r = evalExpr(src, vars || {});
+    if (!r.ok || Math.abs(r.value - want) > 1e-9) f.push(n + " " + src + " -> " + JSON.stringify(r));
+  };
+  const bad = (n, src, vars) => { const r = evalExpr(src, vars || {}); if (r.ok) f.push(n + " " + src + " -> should fail"); };
+  t("1","1+2*3",7); t("2","(1+2)*3",9); t("3","8/2-3",1); t("4","-(2+3)",-5);
+  t("5","min(4,7)",4); t("6","max(4,7)",7); t("7","abs(0-9)",9); t("8","2*(3+4)-5",9);
+  t("9","10/4",2.5); t("10","1-2-3",-4); t("11","2*(3+4)",14); t("12","min(max(1,5),3)",3);
+  t("13","abs(-3)",3); t("14","a*2",8,{a:4}); t("15","a+b*c",7,{a:1,b:2,c:3});
+  t("16","(max(2,3)+1)*2",8); t("17","100/10/2",5); t("18","3+4*2/8",4);
+  t("19","min(1,min(2,3))",1); t("20","-(-5)",5);
+  bad("e1","1+"); bad("e2","(1+2"); bad("e3","min(1)"); bad("e4",")"); bad("e5","2**3");
+  return { passed: 25 - f.length, total: 25, failures: f };
+}
+
+window.API = { eval: evalExpr, ast: astOf };
+window.__selftest = selftest;
+
+const $ = (id) => document.getElementById(id);
+function treeText(n, d){
+  const pad = "  ".repeat(d);
+  if (n.t === "num") return pad + n.v + "\n";
+  if (n.t === "var") return pad + "var " + n.name + "\n";
+  if (n.t === "call") return pad + "call " + n.name + "\n" + n.args.map((x) => treeText(x, d + 1)).join("");
+  return pad + n.op + "\n" + n.args.map((x) => treeText(x, d + 1)).join("");
+}
+function draw(){
+  const src = $("src").value;
+  const L = lex(src);
+  $("toks").innerHTML = L.ok ? L.tokens.filter((t) => t.k !== "eof").map((t) =>
+    "<span class='" + ("+-*/".includes(t.k) ? "op" : "") + "'>" + (t.k === "num" ? t.v : t.k === "id" ? t.v : t.k) + "</span>").join("") : "";
+  const r = evalExpr(src, {});
+  const ast = astOf(src);
+  if (r.ok){
+    $("val").textContent = r.value;
+    $("err").textContent = "";
+    $("tree").textContent = ast.ok ? treeText(ast.tree, 0) : "";
+  } else {
+    $("val").textContent = "—";
+    $("err").textContent = r.error + "\n" + " ".repeat(Math.max(0, r.at || 0)) + "^";
+    $("tree").textContent = "";
+  }
+  $("hdr").textContent = "TOKENS " + (L.ok ? L.tokens.length - 1 : 0) + " · VALUE " + (r.ok ? r.value : "—");
+}
+$("src").addEventListener("input", draw);
+draw();
+const st = selftest();
+$("st").textContent = "SELFTEST " + st.passed + "/" + st.total;
+$("st").className = st.passed === st.total ? "ok" : "bad";
+window.addEventListener("resize", draw);
+</script>
+</body></html>
