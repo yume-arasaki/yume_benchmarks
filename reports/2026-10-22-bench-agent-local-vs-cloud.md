@@ -1,6 +1,6 @@
-# Six tools, one shot, two models: 47/51 against 51/51
+# Six tools, one shot, two models: 47/51 against 48/51
 
-*BENCH-agent v1. The same DeepSeek-V4.1-Flash at 2.9 bits per weight on my desk and at full BF16 in the cloud. Six prompts, one generation each, no repair. The local side scored 47 of 51 checks. The BF16 side scored 51. The interesting part is that the small one told me about its own bugs before I found them.*
+*BENCH-agent v1. The same DeepSeek-V4.1-Flash at 2.9 bits per weight on my desk and at full BF16 in the cloud. Six prompts, one generation each, no repair. The local side scored 47 of 51 checks. The BF16 side scored 48. The interesting part is that the small one told me about its own bugs before I found them.*
 
 ## WHY I BUILT THIS
 
@@ -29,13 +29,15 @@ Before the six tools, the same lane had already run myllmbox's suite: twelve one
 | QUEUE | simulation, statistics | 7/7 | 7/7 |
 | GRAMMAR | recursive descent, errors | 22/22 | 22/22 |
 | GRID | search, optimality | 7/7 | 7/7 |
-| ORBIT | graphics, 20k instances | 3/3 | 3/3 |
+| ORBIT | graphics, 20k instances | 3/3 | 0/3 |
+
+The BF16 side has a miss of its own: my ORBIT page drew twenty thousand bars in black on black, and its self-test still said seven of seven — I tested the scene graph, never the pixels. A task that paints nothing scores zero, so my side is 48 and the gap is one check.
 
 The small one is not embarrassing itself. It wrote an expression parser that passed eighteen values, two variable cases, five error cases with offsets, and an AST check — twenty-two for twenty-two. It wrote an A* that returns optimal costs on three hand-checked maps, refuses a walled-off goal, and never cuts a corner. It put twenty thousand instanced bars in a scene with zero NaNs.
 
 ## WHERE IT LOST, AND WHAT IT SAID
 
-Four checks, and three of them are one bug.
+It lost four checks; three are one bug.
 
 On the VM, every program with a loop hits the 10,000-step cap: factorial, fibonacci, and a simple sum all return `halted-cap` with an empty output. The jump is wrong. The scheduler returns a critical path of just `[D]` instead of the full chain — the makespan and the dependencies are right, so it is the path walk, not the graph.
 
@@ -45,14 +47,14 @@ Here is the part I keep coming back to. Its own panel reported `SELFTEST 6/12` o
 
 Contract-following, mostly. The six prompts agree on a shape — one file, a fixed API signature, plain JSON, a self-test, a seed — and the work is to hold all of that at once while also being correct. At 2.9 bits the model held the shape everywhere and the correctness almost everywhere. The gap is one bug class: loops and path reconstruction, the places where state has to survive more than one step.
 
-I would not read this as "BF16 is four checks better." One sample per task, one fixture set, and a hand-authored other side. I read it as: the quantized model can build the thing, and its self-verification is honest. That is what makes a local model useful on a desk.
+I would not read this as "BF16 is better." One sample per task, one fixture set, a hand-authored other side. I read it as: the quantized model can build the thing, and its self-verification is honest.
 
 Two more three.js prompts came after the six: a cutaway tower and a voxel siege. The tower broke the local model — a TypeError every frame, a blank canvas — while the siege is the best thing it built all night. I did not score those with fixtures; the page shows them side by side.
 
 ## THE RECEIPTS
 
-The suite lives in Sirius, six prompts under `prompts/bench-a*.v1.txt`. The page reads one `fixtures.json`, so page, post and video cannot drift apart. The video is 38 seconds at 1920×1080: the six pairs, the two bars, and the four misses.
+The suite lives in Sirius, six prompts under `prompts/bench-a*.v1.txt`. The video is 38 seconds at 1920×1080: the six pairs, the two bars, and the four misses.
 
-Everything the local side produced is on disk, unedited. That is the point of the exercise. I did not fix them.
+Everything is on disk, unedited, failures included.
 
-To run it: `score.py` and the fixtures on the page.
+
