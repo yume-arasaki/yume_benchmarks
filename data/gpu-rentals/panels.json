@@ -1,0 +1,368 @@
+{
+ "generated": "2026-10-26",
+ "sources": {
+  "R1": "Ornn Data OCPI, transaction-settled (data.ornn.com, keyless daily-index)",
+  "R2/R3/R4": "GPU Economy listed rates (gpueconomy.com, CC BY 4.0, hourly scrape)",
+  "history": "GPU Economy historical_series via SkyPilot catalog",
+  "ownership": "sirius/research/gpu-prices ledger + MATRIX.md"
+ },
+ "panel_rates": [
+  {
+   "gpu": "NVIDIA H100 SXM",
+   "vram_gb": 80,
+   "transacted_usd_hr": 3.03,
+   "listed_median_usd_hr": 3.54,
+   "listed_median_allrows_usd_hr": 3.49,
+   "listed_cheapest_usd_hr": 1.79,
+   "listed_dearest_usd_hr": 11.06,
+   "spot_median_usd_hr": 2.28,
+   "committed_median_usd_hr": 2.955,
+   "n_listed": 41,
+   "chg_1M_pct": 6.32,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA H200",
+   "vram_gb": 141,
+   "transacted_usd_hr": 6.3,
+   "listed_median_usd_hr": 4.56,
+   "listed_median_allrows_usd_hr": 4.59,
+   "listed_cheapest_usd_hr": 2.09,
+   "listed_dearest_usd_hr": 10.7,
+   "spot_median_usd_hr": 2.9725,
+   "committed_median_usd_hr": 2.79,
+   "n_listed": 54,
+   "chg_1M_pct": 24.02,
+   "chg_YTD_pct": 160
+  },
+  {
+   "gpu": "NVIDIA B200",
+   "vram_gb": 180,
+   "transacted_usd_hr": 9.7,
+   "listed_median_usd_hr": 6.99,
+   "listed_median_allrows_usd_hr": 7.125,
+   "listed_cheapest_usd_hr": 4.11,
+   "listed_dearest_usd_hr": 16.11,
+   "spot_median_usd_hr": 4.2416,
+   "committed_median_usd_hr": 5.945,
+   "n_listed": 38,
+   "chg_1M_pct": 20.65,
+   "chg_YTD_pct": 120
+  },
+  {
+   "gpu": "NVIDIA B300",
+   "vram_gb": 288,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 8.99,
+   "listed_median_allrows_usd_hr": 8.96,
+   "listed_cheapest_usd_hr": 5.49,
+   "listed_dearest_usd_hr": 17.802,
+   "spot_median_usd_hr": 4.5875,
+   "committed_median_usd_hr": 8.5,
+   "n_listed": 24,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA A100 80GB",
+   "vram_gb": 80,
+   "transacted_usd_hr": 1.09,
+   "listed_median_usd_hr": 2.0,
+   "listed_median_allrows_usd_hr": 1.826,
+   "listed_cheapest_usd_hr": 1.05,
+   "listed_dearest_usd_hr": 6.82,
+   "spot_median_usd_hr": 1.1888,
+   "committed_median_usd_hr": 0.95,
+   "n_listed": 62,
+   "chg_1M_pct": 6.86,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA RTX PRO 6000 Blackwell",
+   "vram_gb": 96,
+   "transacted_usd_hr": 1.53,
+   "listed_median_usd_hr": 2.32,
+   "listed_median_allrows_usd_hr": 2.39,
+   "listed_cheapest_usd_hr": 0.65,
+   "listed_dearest_usd_hr": 5.5,
+   "spot_median_usd_hr": 1.2268,
+   "committed_median_usd_hr": 1.55,
+   "n_listed": 40,
+   "chg_1M_pct": 0.66,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA RTX 5090",
+   "vram_gb": 32,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 0.84,
+   "listed_median_allrows_usd_hr": 0.8148,
+   "listed_cheapest_usd_hr": 0.55,
+   "listed_dearest_usd_hr": 1.7,
+   "spot_median_usd_hr": 0.74,
+   "committed_median_usd_hr": 0.59,
+   "n_listed": 19,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA RTX 4090",
+   "vram_gb": 24,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 0.47,
+   "listed_median_allrows_usd_hr": 0.4826,
+   "listed_cheapest_usd_hr": 0.33,
+   "listed_dearest_usd_hr": 0.99,
+   "spot_median_usd_hr": 0.57,
+   "committed_median_usd_hr": 0.35,
+   "n_listed": 16,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA GeForce RTX 3090",
+   "vram_gb": 24,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 0.5,
+   "listed_median_allrows_usd_hr": 0.4403,
+   "listed_cheapest_usd_hr": 0.21,
+   "listed_dearest_usd_hr": 0.7827,
+   "spot_median_usd_hr": null,
+   "committed_median_usd_hr": null,
+   "n_listed": 9,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA RTX A6000",
+   "vram_gb": 48,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 0.57,
+   "listed_median_allrows_usd_hr": 0.55,
+   "listed_cheapest_usd_hr": 0.35,
+   "listed_dearest_usd_hr": 2.5,
+   "spot_median_usd_hr": 0.397,
+   "committed_median_usd_hr": 0.35,
+   "n_listed": 20,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA RTX 6000 Ada",
+   "vram_gb": 48,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 1.06,
+   "listed_median_allrows_usd_hr": 1.0275,
+   "listed_cheapest_usd_hr": 0.65,
+   "listed_dearest_usd_hr": 1.8196,
+   "spot_median_usd_hr": 0.7125,
+   "committed_median_usd_hr": null,
+   "n_listed": 11,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  },
+  {
+   "gpu": "NVIDIA L40S",
+   "vram_gb": 48,
+   "transacted_usd_hr": null,
+   "listed_median_usd_hr": 1.52,
+   "listed_median_allrows_usd_hr": 1.4579,
+   "listed_cheapest_usd_hr": 0.63,
+   "listed_dearest_usd_hr": 3.54,
+   "spot_median_usd_hr": 0.985,
+   "committed_median_usd_hr": 0.57,
+   "n_listed": 40,
+   "chg_1M_pct": null,
+   "chg_YTD_pct": null
+  }
+ ],
+ "panel_gbhr": [
+  {
+   "gpu": "NVIDIA RTX A6000",
+   "vram_gb": 48,
+   "usd_hr": 0.57,
+   "usd_per_gb_hr": 0.0119,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA A100 80GB",
+   "vram_gb": 80,
+   "usd_hr": 1.09,
+   "usd_per_gb_hr": 0.0136,
+   "basis": "transacted"
+  },
+  {
+   "gpu": "NVIDIA RTX PRO 6000 Blackwell",
+   "vram_gb": 96,
+   "usd_hr": 1.53,
+   "usd_per_gb_hr": 0.0159,
+   "basis": "transacted"
+  },
+  {
+   "gpu": "NVIDIA RTX 4090",
+   "vram_gb": 24,
+   "usd_hr": 0.47,
+   "usd_per_gb_hr": 0.0196,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA GeForce RTX 3090",
+   "vram_gb": 24,
+   "usd_hr": 0.5,
+   "usd_per_gb_hr": 0.0208,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA RTX 6000 Ada",
+   "vram_gb": 48,
+   "usd_hr": 1.06,
+   "usd_per_gb_hr": 0.0221,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA RTX 5090",
+   "vram_gb": 32,
+   "usd_hr": 0.84,
+   "usd_per_gb_hr": 0.0262,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA B300",
+   "vram_gb": 288,
+   "usd_hr": 8.99,
+   "usd_per_gb_hr": 0.0312,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA L40S",
+   "vram_gb": 48,
+   "usd_hr": 1.52,
+   "usd_per_gb_hr": 0.0317,
+   "basis": "listed median"
+  },
+  {
+   "gpu": "NVIDIA H100 SXM",
+   "vram_gb": 80,
+   "usd_hr": 3.03,
+   "usd_per_gb_hr": 0.0379,
+   "basis": "transacted"
+  },
+  {
+   "gpu": "NVIDIA H200",
+   "vram_gb": 141,
+   "usd_hr": 6.3,
+   "usd_per_gb_hr": 0.0447,
+   "basis": "transacted"
+  },
+  {
+   "gpu": "NVIDIA B200",
+   "vram_gb": 180,
+   "usd_hr": 9.7,
+   "usd_per_gb_hr": 0.0539,
+   "basis": "transacted"
+  }
+ ],
+ "panel_rentown": [
+  {
+   "gpu": "NVIDIA GeForce RTX 3090",
+   "vram_gb": 24,
+   "own_price_usd": 1206,
+   "own_date": "2026-10-06",
+   "own_basis": "GetPCParts sold series",
+   "rent_usd_hr": 0.5,
+   "rent_basis": "listed median",
+   "breakeven_hours": 2412,
+   "breakeven_days_24_7": 100.5,
+   "breakeven_months_50pct": 6.6,
+   "retail_median_new_usd": null
+  },
+  {
+   "gpu": "NVIDIA RTX 4090",
+   "vram_gb": 24,
+   "own_price_usd": 2214,
+   "own_date": "2026-10-06",
+   "own_basis": "GetPCParts sold series",
+   "rent_usd_hr": 0.47,
+   "rent_basis": "listed median",
+   "breakeven_hours": 4711,
+   "breakeven_days_24_7": 196.3,
+   "breakeven_months_50pct": 12.9,
+   "retail_median_new_usd": 3100
+  },
+  {
+   "gpu": "NVIDIA RTX 5090",
+   "vram_gb": 32,
+   "own_price_usd": 4843,
+   "own_date": "2026-10-06",
+   "own_basis": "GetPCParts sold series",
+   "rent_usd_hr": 0.84,
+   "rent_basis": "listed median",
+   "breakeven_hours": 5765,
+   "breakeven_days_24_7": 240.2,
+   "breakeven_months_50pct": 15.8,
+   "retail_median_new_usd": 5494
+  },
+  {
+   "gpu": "NVIDIA RTX PRO 6000 Blackwell",
+   "vram_gb": 96,
+   "own_price_usd": 14400,
+   "own_date": "2026-10-09",
+   "own_basis": "Micro Center in-store",
+   "rent_usd_hr": 2.32,
+   "rent_basis": "listed median",
+   "breakeven_hours": 6207,
+   "breakeven_days_24_7": 258.6,
+   "breakeven_months_50pct": 17.0,
+   "retail_median_new_usd": 10449
+  },
+  {
+   "gpu": "NVIDIA RTX 6000 Ada",
+   "vram_gb": 48,
+   "own_price_usd": 7590,
+   "own_date": "2026-10-11",
+   "own_basis": "Silicon Comps asking median",
+   "rent_usd_hr": 1.06,
+   "rent_basis": "listed median",
+   "breakeven_hours": 7160,
+   "breakeven_days_24_7": 298.3,
+   "breakeven_months_50pct": 19.6,
+   "retail_median_new_usd": 6978
+  },
+  {
+   "gpu": "NVIDIA RTX A6000",
+   "vram_gb": 48,
+   "own_price_usd": 5108,
+   "own_date": "2026-10-11",
+   "own_basis": "Silicon Comps asking median",
+   "rent_usd_hr": 0.57,
+   "rent_basis": "listed median",
+   "breakeven_hours": 8961,
+   "breakeven_days_24_7": 373.4,
+   "breakeven_months_50pct": 24.6,
+   "retail_median_new_usd": null
+  }
+ ],
+ "h100_listed_series": [
+  [
+   "2026-01-05",
+   2.97
+  ],
+  [
+   "2026-04-06",
+   2.99
+  ],
+  [
+   "2026-07-06",
+   3.85
+  ],
+  [
+   "2026-10-05",
+   4.25
+  ],
+  [
+   "2026-10-19",
+   4.25
+  ]
+ ],
+ "h100_ytd_listed_pct": 43.1
+}

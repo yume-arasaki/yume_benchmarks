@@ -43,6 +43,64 @@ On the VM, every program with a loop hits the 10,000-step cap: factorial, fibona
 
 Here is the part I keep coming back to. Its own panel reported `SELFTEST 6/12` on the VM and `11/12` on the scheduler, and listed the same failures my harness found, by name. It did not claim a pass. A model that cannot fix a bug in one shot is expected. A model that ships a red test and tells you why is doing something I want from software.
 
+## HOW THE TEST WORKS
+
+Each task is one self-contained HTML file, generated once, with no repair. The contract is the same
+across all six. The artifact must expose a fixed `window.API` with plain JSON in and out and no coupling
+to the DOM, plus a `window.__selftest()` that returns passed, total and a list of failures, shown in a
+panel on the page.
+
+The harness never scores that panel. It loads the artifact in headless Chrome, calls the API with inputs
+the artifact has not seen, and records the answer. Every artifact is called twice, and all twelve agreed
+with themselves across both runs.
+
+Scoring has two stages. First a gate: does it load without console errors, paint something, and answer
+the API at all. Then the checks: pass or fail for each fixture. A task that fails its gate scores zero
+no matter what its self-test says. That rule is what produced the cloud side's only miss.
+
+The local side ran on two DGX Sparks, tensor parallel over RDMA: Mia's TensorFold Zig kit, EXL3 2.9 bpw,
+a 1,048,576-token window, four seats, about eighty tokens a second. The cloud side is the same 1017 at
+BF16, assumed, authored by the assistant in the same session. No endpoint was called and no throughput
+is claimed for it.
+
+## THE GATE THAT COST THREE CHECKS
+
+The cloud side's ORBIT page built an instanced mesh with vertex colours enabled and no colour attribute.
+Twenty thousand bars rendered black on a black background, and only the grid painted. Its self-test
+returned seven of seven because it checked instance count, NaNs and positions, and never a pixel.
+
+The harness did not catch it either: those fixture checks were structural too. The gate did. A page that
+paints nothing fails, so the task scored 0/3 instead of 3/3. That is the whole distance between 51 and
+48, and the reason the headline gap is one check rather than four.
+
+## THE VISUAL ROUND, MEASURED
+
+Two three.js prompts with no API contract, scored on whether they run and what they paint. The harness
+records console errors, paint coverage, colour count and file size. The verdict stays human.
+
+The skyscraper produced 64 runtime errors on the local side and an effectively blank canvas; the cloud
+side ran the cutaway with lifts, riders and street traffic. On the siege, both sides ran, and the local
+one is visibly denser: more camp, more forest, better light.
+
+## THE GAUNTLET, MEASURED
+
+Before the six tools, the same lane ran myllmbox's suite: twelve one-shot pages and sixty-three
+throughput cells. Ten pages came out clean and two at half. Fish 1 starts a fish off frame; fish 3
+spawns its bubbles before it measures the viewport, so they sit at the origin until they respawn.
+
+The numbers from that run: gauntlet average 80.6 tok/s with a 125.3 peak, throughput plateauing at 156.6
+at sixteen streams, and the site's own blocks at 2.16 of 3 for gauntlet speed and 16.36 of 22 for
+throughput.
+
+## WHAT IS NOT PUBLISHED
+
+The six prompts, the generated files, the fixture inputs and the harness are held locally and are not in
+this repository. The reason is simple: the prompts are the test. Publishing them turns the benchmark into
+a set to optimise against, and the next number measures memorisation rather than capability.
+
+The method and the results are here. The inputs are not. If you want to rerun the shape of it, the
+contract above is enough to build your own fixtures.
+
 ## WHAT I THINK THIS MEASURES
 
 Contract-following, mostly. The six prompts agree on a shape — one file, a fixed API signature, plain JSON, a self-test, a seed — and the work is to hold all of that at once while also being correct. At 2.9 bits the model held the shape everywhere and the correctness almost everywhere. The gap is one bug class: loops and path reconstruction, the places where state has to survive more than one step.
@@ -53,8 +111,12 @@ Two more three.js prompts came after the six: a cutaway tower and a voxel siege.
 
 ## THE RECEIPTS
 
-The suite lives in Sirius with six prompts. The film is 79 seconds: split screen, the six tools scrolling in pairs, the numbers on one board, and the scorecard.
+The prompts, the generated artifacts and the fixture inputs are held privately, as above. What can be
+checked in public: the myllmbox entry this lane submitted (twelve pages, sixty-three cells), Mia's
+recipe and the two install fixes I sent her, and the earlier report on the 1M window and the prompt
+cache. The film is 79 seconds, split screen, and every comparison in it moves.
 
-Everything is on disk, unedited.
+The scores in this piece come from one run: local 47/51, cloud 48/51, both sides agreeing with
+themselves across two passes.
 
 
