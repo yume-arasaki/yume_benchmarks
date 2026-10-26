@@ -179,14 +179,14 @@
 },
 {
 "month": "2025-02",
-"median": null,
-"lo": null,
+"median": 3.5,
+"lo": 3.5,
 "pairs": 2
 },
 {
 "month": "2025-03",
-"median": null,
-"lo": null,
+"median": 3.5,
+"lo": 3.5,
 "pairs": 2
 },
 {
@@ -461,151 +461,303 @@
 "month": "2024-10",
 "median": 1.29,
 "lo": 1.29,
-"pairs": 13
+"pairs": 25
 },
 {
 "month": "2024-11",
 "median": 1.29,
 "lo": 1.29,
-"pairs": 15
+"pairs": 27
 },
 {
 "month": "2024-12",
 "median": 1.29,
 "lo": 1.29,
-"pairs": 15
+"pairs": 27
 },
 {
 "month": "2025-01",
-"median": 1.29,
+"median": 1.545,
 "lo": 1.29,
-"pairs": 15
+"pairs": 30
 },
 {
 "month": "2025-02",
 "median": 1.29,
 "lo": 1.29,
-"pairs": 17
+"pairs": 30
 },
 {
 "month": "2025-03",
 "median": 1.29,
 "lo": 1.04,
-"pairs": 19
+"pairs": 33
 },
 {
 "month": "2025-04",
 "median": 1.29,
 "lo": 1.265,
-"pairs": 18
+"pairs": 32
 },
 {
 "month": "2025-05",
 "median": 1.29,
 "lo": 0.935,
-"pairs": 19
+"pairs": 31
 },
 {
 "month": "2025-06",
 "median": 1.29,
-"lo": 0.735,
-"pairs": 20
+"lo": 0.125,
+"pairs": 33
 },
 {
 "month": "2025-07",
 "median": 1.29,
 "lo": 0.73,
-"pairs": 22
+"pairs": 34
 },
 {
 "month": "2025-08",
 "median": 1.29,
 "lo": 0.18,
-"pairs": 27
+"pairs": 39
 },
 {
 "month": "2025-09",
 "median": 1.29,
 "lo": 0.68,
-"pairs": 29
+"pairs": 43
 },
 {
 "month": "2025-10",
 "median": 1.29,
 "lo": 0.56,
-"pairs": 36
+"pairs": 63
 },
 {
 "month": "2025-11",
 "median": 1.29,
 "lo": 0.5,
-"pairs": 43
+"pairs": 72
 },
 {
 "month": "2025-12",
 "median": 1.29,
 "lo": 0.5,
-"pairs": 41
+"pairs": 71
 },
 {
 "month": "2026-01",
 "median": 1.29,
 "lo": 0.5,
-"pairs": 41
+"pairs": 71
 },
 {
 "month": "2026-02",
 "median": 1.29,
 "lo": 0.5,
-"pairs": 40
+"pairs": 69
 },
 {
 "month": "2026-03",
-"median": 1.48,
+"median": 1.39,
 "lo": 0.01,
-"pairs": 37
+"pairs": 60
 },
 {
 "month": "2026-04",
-"median": 1.76,
+"median": 1.39,
 "lo": 0.01,
-"pairs": 36
+"pairs": 54
 },
 {
 "month": "2026-05",
-"median": 1.529,
+"median": 1.39,
 "lo": 0.01,
-"pairs": 37
+"pairs": 54
 },
 {
 "month": "2026-06",
-"median": 1.99,
+"median": 1.4,
 "lo": 0.01,
-"pairs": 40
+"pairs": 61
 },
 {
 "month": "2026-07",
-"median": 1.99,
+"median": 1.59,
 "lo": 0.01,
-"pairs": 40
+"pairs": 70
 },
 {
 "month": "2026-08",
-"median": 1.99,
+"median": 1.39,
 "lo": 0.01,
-"pairs": 40
+"pairs": 69
 },
 {
 "month": "2026-09",
-"median": 1.99,
+"median": 1.59,
 "lo": 0.665,
-"pairs": 36
+"pairs": 65
 },
 {
 "month": "2026-10",
-"median": 1.99,
+"median": 1.79,
 "lo": 0.665,
-"pairs": 39
+"pairs": 71
+}
+],
+"RTX PRO 6000": [
+{
+"month": "2024-10",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2024-11",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2024-12",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-01",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-02",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-03",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-04",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-05",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-06",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-07",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-08",
+"median": null,
+"lo": null,
+"pairs": 0
+},
+{
+"month": "2025-09",
+"median": 1.087,
+"lo": 1.04,
+"pairs": 2
+},
+{
+"month": "2025-10",
+"median": 1.0,
+"lo": 0.93,
+"pairs": 3
+},
+{
+"month": "2025-11",
+"median": 1.84,
+"lo": 0.93,
+"pairs": 13
+},
+{
+"month": "2025-12",
+"median": 1.84,
+"lo": 0.93,
+"pairs": 13
+},
+{
+"month": "2026-01",
+"median": 1.84,
+"lo": 0.93,
+"pairs": 14
+},
+{
+"month": "2026-02",
+"median": 1.69,
+"lo": 0.93,
+"pairs": 16
+},
+{
+"month": "2026-03",
+"median": 1.69,
+"lo": 0.93,
+"pairs": 17
+},
+{
+"month": "2026-04",
+"median": 1.89,
+"lo": 0.93,
+"pairs": 14
+},
+{
+"month": "2026-05",
+"median": 1.84,
+"lo": 0.93,
+"pairs": 16
+},
+{
+"month": "2026-06",
+"median": 1.89,
+"lo": 0.93,
+"pairs": 16
+},
+{
+"month": "2026-07",
+"median": 1.89,
+"lo": 0.93,
+"pairs": 20
+},
+{
+"month": "2026-08",
+"median": 1.89,
+"lo": 0.93,
+"pairs": 29
+},
+{
+"month": "2026-09",
+"median": 2.09,
+"lo": 0.93,
+"pairs": 26
+},
+{
+"month": "2026-10",
+"median": 2.49,
+"lo": 0.93,
+"pairs": 22
 }
 ]
 },
