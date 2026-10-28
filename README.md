@@ -32,6 +32,7 @@ Not a tool. Not a recipe. Just the write-ups.
 
 | 22 Oct 2026 | [Bench agent: local vs cloud on one desk](reports/2026-10-22-bench-agent-local-vs-cloud.md) |
 | 26 Oct 2026 | [GPU rental ledger, global market 2026 — receipts for the rental post](reports/2026-10-26-gpu-rental-ledger.md) |
+| 28 Oct 2026 | [GLM-5.3-Flash at 4 bits on two DGX Sparks — NVIDIA's own checkpoint, 0.8 off BF16](reports/2026-10-28-glm53-flash-fp4-local-two-sparks.md) — vr8vr8's cluster recipe on :8008; GPQA 91.3 vs 92.1 BF16 and ToolEval 92.4 vs 91.9 straight off NVIDIA's card; needle 12/12 to 256k, zero garbled streams; 165.4 agg at C16 with 0.55 J/token; decode *rises* to 48.0 tok/s at 232k actual | `2026-10-28_8008_*` isolates |
 
 Next time I run something, it goes in `reports/` with a date.
 
